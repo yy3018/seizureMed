@@ -1,0 +1,45 @@
+---
+title: "Factor Exploration"
+author: "Xiaoyang Li"
+date: "2020/11/2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+```
+
+## Data clean
+
+having stroke (from imaging studies), having metabolic anomalies (high BUN, creatinine), having liver disease (high liver enzymes AST and/or ALT), having head injury, having brain tumor
+
+```{r}
+str(data)
+
+Age = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 505.csv") %>% select(zSubjectID, age) %>% rename( id = zSubjectID)
+
+Gender = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 127 gender.csv") %>% select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
+
+Pre = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/CSV Datasets_form123.csv") %>% select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
+  mutate( pre = as.numeric(pre))
+
+data = read_excel("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
+  janitor::clean_names() %>% 
+  select(z_subject_id, sz_at_20mins, sz_at_60mins,outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, final_dx, itt, se_precipitnat, home_meds_flat_med_name_1 ) %>% 
+  rename(id = z_subject_id,
+         sz20 =  sz_at_20mins,
+         sz60 = sz_at_60mins,
+         outcome = outcome1a_treatment_success_adjudicated_1_yes_0_no,
+         se_duration = se_duration_before_study_drug,
+         drug = study_drug,
+         cause = se_precipitnat) %>% 
+  mutate(id = as.numeric(id))
+
+home_med = as.numeric(!is.na(data$home_meds_flat_med_name_1))
+data = cbind(data, home_med)
+  
+data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre)
+```
+

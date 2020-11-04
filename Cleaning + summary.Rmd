@@ -17,6 +17,8 @@ options(qwraps2_markup = "markdown")
 ```
 
 ## Data clean
+
+
 ```{r}
 Age = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 505.csv") %>% select(zSubjectID, age) %>% rename( id = zSubjectID)
 
@@ -28,7 +30,7 @@ Pre = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/CSV Datasets_form123.csv
 
 data = read_excel("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
   janitor::clean_names() %>% 
-  select(z_subject_id, race, hispanic , children, outcome1a_treatment_success_adjudicated_1_yes_0_no, lor_equiv_lt_32kg, lor_equic_gt_32kg,weightkg, study_drug, se_precipitnat)%>% 
+  select(z_subject_id, race, children, outcome1a_treatment_success_adjudicated_1_yes_0_no, lor_equiv_lt_32kg, lor_equic_gt_32kg,weightkg, study_drug, se_precipitnat)%>% 
   rename(id = z_subject_id,
         outcome = outcome1a_treatment_success_adjudicated_1_yes_0_no,
         lorlt = lor_equiv_lt_32kg,
