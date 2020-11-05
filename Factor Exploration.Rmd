@@ -54,7 +54,7 @@ data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>%
          sz60 = as.numeric(sz60),
          Male = as.factor(Male),
          pre = as.factor(pre),
-         se_duration = as.numeric(se_duration)) %>%  %>% 
+         se_duration = as.numeric(se_duration)) %>% 
   mutate(
     age1 = case_when(age <= 18 ~ "young",
                      age > 18 & age <=50 ~ "adult",
