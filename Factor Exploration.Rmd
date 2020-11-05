@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
+library(MASS)
 ```
 
 ## Data clean
@@ -53,8 +54,11 @@ data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>%
          sz60 = as.numeric(sz60),
          Male = as.factor(Male),
          pre = as.factor(pre),
-         se_duration = as.numeric(se_duration)) %>% 
-  select( -benzos_pre_ed, -home_meds_flat_med_name_1)
+         se_duration = as.numeric(se_duration)) %>%  %>% 
+  mutate(
+    age1 = case_when(age <= 18 ~ "young",
+                     age > 18 & age <=50 ~ "adult",
+                     age > 50 ~ "old"))
 
 
 
@@ -66,51 +70,96 @@ str(data)
 ```{r}
 seizure20 = data %>% 
   filter(sz20 == 0 | sz20 == 1) %>% 
-  filter(is.na(se_duration) == FALSE )
+  filter(is.na(se_duration) == FALSE )%>% 
+  dplyr::select(sz20 ,age1 , Male , pre  , drug , se_duration , final_dx , cause , home_med)
+
+
+seizure20 = na.omit(seizure20)
+
 
 seizure20A = seizure20 %>% filter(drug == "A")
 seizure20B = seizure20 %>% filter(drug == "B")
 seizure20C = seizure20 %>% filter(drug == "C")
 
-glm20 = glm(data = seizure20, sz20 ~ children + age + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm20 = glm(data = seizure20, sz20 ~ age1 + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
 
 
-glm20A = glm(data = seizure20A, sz20 ~ children + age + Male + pre  +se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm20A = glm(data = seizure20A, sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
 
-glm20B = glm(data = seizure20B, sz20 ~ children + age + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm20B = glm(data = seizure20B, sz20 ~ age1 + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
 
-glm20C = glm(data = seizure20C, sz20 ~ children + age + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm20C = glm(data = seizure20C, sz20 ~ age1 + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
 
 summary(glm20)
 summary(glm20A)
 summary(glm20B)
 summary(glm20C)
 
+step20 = glm20 %>% stepAIC(trace = FALSE)
+step20A = glm20A %>% stepAIC(trace = FALSE)
+step20B = glm20B %>% stepAIC(trace = FALSE)
+step20C = glm20C %>% stepAIC(trace = FALSE)
+
+glm20_ = glm(data = seizure20, sz20 ~Male, family=binomial(link='logit'))
+
+glm20A_ = glm(data = seizure20A, sz20 ~ age1 + cause , family=binomial(link='logit'))
+
+#glm20B_ = glm(data = seizure20B, sz20 ~ age1 + cause , family=binomial(link='logit'))
+
+glm20C_ = glm(data = seizure20C, sz20 ~ Male + final_dx , family=binomial(link='logit'))
+
+
+summary(glm20_)
+summary(glm20A_)
+#summary(glm20B_)
+summary(glm20C_)
 ```
 
 ### seizure at 60 mins as y
 ```{r}
 seizure60 = data %>% 
   filter(sz60 == 0 | sz60 == 1) %>% 
-  filter(is.na(se_duration) == FALSE )
+  filter(is.na(se_duration) == FALSE )%>% 
+  dplyr::select(sz60 ,age1 , Male , pre  , drug , se_duration , final_dx , cause , home_med)
+
+
+seizure60 = na.omit(seizure60)
+
 
 seizure60A = seizure60 %>% filter(drug == "A")
 seizure60B = seizure60 %>% filter(drug == "B")
 seizure60C = seizure60 %>% filter(drug == "C")
 
-glm60 = glm(data = seizure60, sz60 ~ children + age + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm60 = glm(data = seizure60, sz60 ~  age1 + Male + pre + se_duration + final_dx + cause + home_med + drug, family=binomial(link='logit'))
 
 
-glm60A = glm(data = seizure60A, sz60 ~ children + age + Male + pre +se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm60A = glm(data = seizure60A, sz60 ~  age1 + Male + pre + se_duration + final_dx + cause + home_med  , family=binomial(link='logit'))
 
-glm60B = glm(data = seizure60B, sz60 ~ children + age + Male + pre + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm60B = glm(data = seizure60B, sz60 ~  age1 + Male + pre + se_duration + final_dx + cause + home_med  , family=binomial(link='logit'))
 
-glm60C = glm(data = seizure60C, sz60 ~ children + age + Male + pre + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+glm60C = glm(data = seizure60C, sz60 ~  age1 + Male + pre + se_duration + final_dx + cause + home_med  , family=binomial(link='logit'))
 
 summary(glm60)
 summary(glm60A)
 summary(glm60B)
 summary(glm60C)
 
+step60 = glm60 %>% stepAIC(trace = FALSE)
+step60A = glm60A %>% stepAIC(trace = FALSE)
+step60B = glm60B %>% stepAIC(trace = FALSE)
+step60C = glm60C %>% stepAIC(trace = FALSE)
+
+glm60_ = glm(data = seizure60, sz60 ~age1, family=binomial(link='logit'))
+
+#glm60A_ = glm(data = seizure60A, sz60 ~ age1 + cause , family=binomial(link='logit'))
+glm60B_ = glm(data = seizure60B, sz60 ~ age1 , family=binomial(link='logit'))
+
+glm60C_ = glm(data = seizure60C, sz60 ~age1 + cause , family=binomial(link='logit'))
+
+
+summary(glm60_)
+#summary(glm60A_)
+summary(glm60B_)
+summary(glm60C_)
 ```
 
