@@ -16,7 +16,6 @@ library(readxl)
 having stroke (from imaging studies), having metabolic anomalies (high BUN, creatinine), having liver disease (high liver enzymes AST and/or ALT), having head injury, having brain tumor
 
 ```{r}
-str(data)
 
 Age = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 505.csv") %>% select(zSubjectID, age) %>% rename( id = zSubjectID)
 
@@ -25,21 +24,93 @@ Gender = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 127 gender.csv")
 Pre = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/CSV Datasets_form123.csv") %>% select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
   mutate( pre = as.numeric(pre))
 
+benzo = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 506MC.csv") %>% select(zSubjectID, F506CQB, F506CQC, F506CQA_min) %>%
+  rename(id = zSubjectID,
+         benzotype = F506CQB,
+         benzodose = F506CQC) %>% 
+  pivot_wider()
+
 data = read_excel("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
   janitor::clean_names() %>% 
-  select(z_subject_id, sz_at_20mins, sz_at_60mins,outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, final_dx, itt, se_precipitnat, home_meds_flat_med_name_1 ) %>% 
+  select(z_subject_id, sz_at_20mins, sz_at_60mins,responsive_at_20mins, responsive_at_60mins, outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, final_dx, itt, se_precipitnat, home_meds_flat_med_name_1 ) %>% 
   rename(id = z_subject_id,
          sz20 =  sz_at_20mins,
          sz60 = sz_at_60mins,
+         res20 = responsive_at_20mins,
+         res60 = responsive_at_60mins,
          outcome = outcome1a_treatment_success_adjudicated_1_yes_0_no,
          se_duration = se_duration_before_study_drug,
          drug = study_drug,
          cause = se_precipitnat) %>% 
   mutate(id = as.numeric(id))
 
-home_med = as.numeric(!is.na(data$home_meds_flat_med_name_1))
+home_med = as.factor(!is.na(data$home_meds_flat_med_name_1))
 data = cbind(data, home_med)
   
-data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre)
+
+data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% 
+  mutate(sz20 = as.numeric(sz20),
+         sz60 = as.numeric(sz60),
+         Male = as.factor(Male),
+         pre = as.factor(pre),
+         se_duration = as.numeric(se_duration)) %>% 
+  select( -benzos_pre_ed, -home_meds_flat_med_name_1)
+
+
+
+str(data)
+
+```
+
+### seizure at 20 mins as y
+```{r}
+seizure20 = data %>% 
+  filter(sz20 == 0 | sz20 == 1) %>% 
+  filter(is.na(se_duration) == FALSE )
+
+seizure20A = seizure20 %>% filter(drug == "A")
+seizure20B = seizure20 %>% filter(drug == "B")
+seizure20C = seizure20 %>% filter(drug == "C")
+
+glm20 = glm(data = seizure20, sz20 ~ children + age + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+
+glm20A = glm(data = seizure20A, sz20 ~ children + age + Male + pre  +se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+glm20B = glm(data = seizure20B, sz20 ~ children + age + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+glm20C = glm(data = seizure20C, sz20 ~ children + age + Male + pre  +  se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+summary(glm20)
+summary(glm20A)
+summary(glm20B)
+summary(glm20C)
+
+```
+
+### seizure at 60 mins as y
+```{r}
+seizure60 = data %>% 
+  filter(sz60 == 0 | sz60 == 1) %>% 
+  filter(is.na(se_duration) == FALSE )
+
+seizure60A = seizure60 %>% filter(drug == "A")
+seizure60B = seizure60 %>% filter(drug == "B")
+seizure60C = seizure60 %>% filter(drug == "C")
+
+glm60 = glm(data = seizure60, sz60 ~ children + age + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+
+glm60A = glm(data = seizure60A, sz60 ~ children + age + Male + pre +se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+glm60B = glm(data = seizure60B, sz60 ~ children + age + Male + pre + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+glm60C = glm(data = seizure60C, sz60 ~ children + age + Male + pre + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
+
+summary(glm60)
+summary(glm60A)
+summary(glm60B)
+summary(glm60C)
+
 ```
 
