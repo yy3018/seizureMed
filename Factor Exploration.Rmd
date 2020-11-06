@@ -67,7 +67,8 @@ data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>%
 seizure20 = data %>% 
   filter(sz20 == 0 | sz20 == 1) %>% 
   filter(is.na(se_duration) == FALSE )%>% 
-  dplyr::select(sz20 ,age1 , Male , pre  , drug , se_duration , final_dx , cause , home_med)
+  dplyr::select(sz20 ,res20, age1 , Male , pre  , drug , se_duration , final_dx , cause , home_med) %>% 
+  mutate(success=ifelse(sz20==0&res20==1,1,0))
 
 
 seizure20 = na.omit(seizure20)
@@ -124,7 +125,8 @@ summary(glm20C_)
 seizure60 = data %>% 
   filter(sz60 == 0 | sz60 == 1) %>% 
   filter(is.na(se_duration) == FALSE )%>% 
-  dplyr::select(sz60 ,age1 , Male , pre  , drug , se_duration , final_dx , cause , home_med)
+  dplyr::select(sz60 ,age1 , res60, Male , pre  , drug , se_duration , final_dx , cause , home_med) %>% 
+  mutate(success=ifelse(sz60==0&res60==1,1,0))
 
 
 seizure60 = na.omit(seizure60)
@@ -133,6 +135,10 @@ seizure60 = na.omit(seizure60)
 seizure60A = seizure60 %>% filter(drug == "A")
 seizure60B = seizure60 %>% filter(drug == "B")
 seizure60C = seizure60 %>% filter(drug == "C")
+
+save(seizure60A,file='seizure60A.Rdat')
+save(seizure60B,file='seizure60B.Rdat')
+save(seizure60C,file='seizure60C.Rdat')
 
 glm60 = glm(data = seizure60, sz60 ~  age1 + Male + pre + se_duration + final_dx + cause + home_med + drug, family=binomial(link='logit'))
 

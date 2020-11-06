@@ -19,7 +19,7 @@ load('seizure20C.Rdat')
 
 
 ```{r}
-fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
    method="class", data=seizure20A)
 
 print(fit)
@@ -27,31 +27,74 @@ rpart.plot(fit)
 
 
 pred <- predict(fit,newdata = seizure20A,method='class')
-sum(seizure20A$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+sum(seizure20A$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
 ```
 
 
 
 ```{r}
-fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
    method="class", data=seizure20B)
 
 print(fit)
 rpart.plot(fit)
 
+
 pred <- predict(fit,newdata = seizure20B,method='class')
-sum(seizure20B$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+sum(seizure20B$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
 ```
 
 
 ```{r}
-fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
    method="class", data=seizure20C)
 
 print(fit)
 rpart.plot(fit)
 
+
 pred <- predict(fit,newdata = seizure20C,method='class')
-sum(seizure20C$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+sum(seizure20C$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
 ```
+
+
+```{r}
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
+   method="class", data=seizure60A)
+
+print(fit)
+rpart.plot(fit)
+
+
+pred <- predict(fit,newdata = seizure60A,method='class')
+sum(seizure60A$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+
+```{r}
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
+   method="class", data=seizure60B)
+
+print(fit)
+rpart.plot(fit)
+
+
+pred <- predict(fit,newdata = seizure60B,method='class')
+sum(seizure60B$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+
+
+```{r}
+fit <- rpart(success ~ age1 + Male + pre + se_duration + final_dx  + home_med,
+   method="class", data=seizure60C)
+
+print(fit)
+rpart.plot(fit)
+
+
+pred <- predict(fit,newdata = seizure60C,method='class')
+sum(seizure60C$success == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+
+
+
 
