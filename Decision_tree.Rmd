@@ -1,0 +1,57 @@
+---
+title: "Decision_tree"
+author: "Yiling Yang"
+date: "11/5/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,message = FALSE)
+library(tidyverse)
+library(readxl)
+library(rpart)
+library(rpart.plot)
+
+load('seizure20A.Rdat')
+load('seizure20B.Rdat')
+load('seizure20C.Rdat')
+```
+
+
+```{r}
+fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+   method="class", data=seizure20A)
+
+print(fit)
+rpart.plot(fit)
+
+
+pred <- predict(fit,newdata = seizure20A,method='class')
+sum(seizure20A$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+
+
+
+```{r}
+fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+   method="class", data=seizure20B)
+
+print(fit)
+rpart.plot(fit)
+
+pred <- predict(fit,newdata = seizure20B,method='class')
+sum(seizure20B$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+
+
+```{r}
+fit <- rpart(sz20 ~ age1 + Male + pre + se_duration + final_dx + cause + home_med,
+   method="class", data=seizure20C)
+
+print(fit)
+rpart.plot(fit)
+
+pred <- predict(fit,newdata = seizure20C,method='class')
+sum(seizure20C$sz20 == as.character(as.numeric(pred[,1]<pred[,2])))/length(pred)
+```
+

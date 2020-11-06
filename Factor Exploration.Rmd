@@ -18,20 +18,20 @@ having stroke (from imaging studies), having metabolic anomalies (high BUN, crea
 
 ```{r}
 
-Age = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 505.csv") %>% dplyr::select(zSubjectID, age) %>% rename( id = zSubjectID)
+Age = read_csv("./ESETT/Form 505.csv") %>% dplyr::select(zSubjectID, age) %>% rename( id = zSubjectID)
 
-Gender = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 127 gender.csv") %>% dplyr::select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
+Gender = read_csv("./ESETT/Form 127 gender.csv") %>% dplyr::select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
 
-Pre = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/CSV Datasets_form123.csv") %>% dplyr::select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
+Pre = read_csv("./ESETT/CSV Datasets_form123.csv") %>% dplyr::select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
   mutate( pre = as.numeric(pre))
 
-benzo = read_csv("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Form 506MC.csv") %>% dplyr::select(zSubjectID, F506CQB, F506CQC, F506CQA_min) %>%
+benzo = read_csv("./ESETT/Form 506MC.csv") %>% dplyr::select(zSubjectID, F506CQB, F506CQC, F506CQA_min) %>%
   rename(id = zSubjectID,
          benzotype = F506CQB,
          benzodose = F506CQC) %>% 
   pivot_wider()
 
-data = read_excel("C:/Users/Xiaoyang Li/Desktop/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
+data = read_excel("./ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
   janitor::clean_names() %>% 
   dplyr::select(z_subject_id, sz_at_20mins, sz_at_60mins,responsive_at_20mins, responsive_at_60mins, outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, final_dx, itt, se_precipitnat, home_meds_flat_med_name_1 ) %>% 
   rename(id = z_subject_id,
@@ -60,10 +60,6 @@ data = data %>% full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>%
                      age > 18 & age <=50 ~ "adult",
                      age > 50 ~ "old"))
 
-
-
-str(data)
-
 ```
 
 ### seizure at 20 mins as y
@@ -81,6 +77,14 @@ seizure20A = seizure20 %>% filter(drug == "A")
 seizure20B = seizure20 %>% filter(drug == "B")
 seizure20C = seizure20 %>% filter(drug == "C")
 
+
+save(seizure20A,file='seizure20A.Rdat')
+save(seizure20B,file='seizure20B.Rdat')
+save(seizure20C,file='seizure20C.Rdat')
+```
+
+
+```{r}
 glm20 = glm(data = seizure20, sz20 ~ age1 + Male + pre  + drug + se_duration + final_dx + cause + home_med , family=binomial(link='logit'))
 
 
