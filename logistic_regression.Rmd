@@ -1,0 +1,50 @@
+---
+title: "logistic_regression"
+author: "Yiling Yang"
+date: "11/5/2020"
+output: pdf_document
+---
+### seizure at 20 mins as y
+
+
+
+```{r}
+glm20A = glm(data = seizure20A, success ~ age1 + Male + pre + se_duration + final_dx  + home_med , family=binomial(link='logit'))
+glm20B = glm(data = seizure20B, success ~ age1 + Male + pre + se_duration + final_dx  + home_med , family=binomial(link='logit'))
+glm20C = glm(data = seizure20C, success ~ age1 + Male + pre + se_duration + final_dx  + home_med , family=binomial(link='logit'))
+
+
+summary(glm20A)
+summary(glm20B)
+summary(glm20C)
+```
+
+### seizure at 60 mins as y
+```{r}
+glm60A = glm(data = seizure60A, sz60 ~  age1 + Male + pre + se_duration + final_dx  + home_med  , family=binomial(link='logit'))
+glm60B = glm(data = seizure60B, sz60 ~  age1 + Male + pre + se_duration + final_dx  + home_med  , family=binomial(link='logit'))
+glm60C = glm(data = seizure60C, sz60 ~  age1 + Male + pre + se_duration + final_dx  + home_med  , family=binomial(link='logit'))
+
+summary(glm60A)
+summary(glm60B)
+summary(glm60C)
+
+#step60 = glm60 %>% stepAIC(trace = FALSE)
+#step60A = glm60A %>% stepAIC(trace = FALSE)
+#step60B = glm60B %>% stepAIC(trace = FALSE)
+#step60C = glm60C %>% stepAIC(trace = FALSE)
+
+#glm60_ = glm(data = seizure60, sz60 ~age1, family=binomial(link='logit'))
+
+#glm60A_ = glm(data = seizure60A, sz60 ~ age1 + cause , family=binomial(link='logit'))
+#glm60B_ = glm(data = seizure60B, sz60 ~ age1 , family=binomial(link='logit'))
+
+#glm60C_ = glm(data = seizure60C, sz60 ~age1 + cause , family=binomial(link='logit'))
+
+#summary(glm60_)
+#summary(glm60A_)
+#summary(glm60B_)
+#summary(glm60C_)
+```
+
+
