@@ -29,6 +29,7 @@ summary(glm60A)
 summary(glm60B)
 summary(glm60C)
 
+glm
 #step60 = glm60 %>% stepAIC(trace = FALSE)
 #step60A = glm60A %>% stepAIC(trace = FALSE)
 #step60B = glm60B %>% stepAIC(trace = FALSE)

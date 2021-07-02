@@ -71,7 +71,7 @@ benzo_dose = benzo %>% group_by(id) %>% summarise(dose_benzo = n(),
 ```{r}
 data = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
   janitor::clean_names() %>% 
-  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, se_precipitnat, race, hispanic ) %>% 
+  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, se_precipitnat, race, hispanic, itt, final_dx) %>% 
   rename(id = z_subject_id,
          sz60 = sz_at_60mins,
          res60 = responsive_at_60mins,
@@ -85,7 +85,8 @@ data = data %>%
          benzos_pre_ed = as.numeric(benzos_pre_ed), 
          sz60 = as.numeric(sz60),
          res60 = as.numeric(res60), 
-         se = as.numeric(se)) 
+         se = as.numeric(se),
+         itt = as.numeric(itt)) 
 
 data = data %>% 
   full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% 
@@ -104,33 +105,38 @@ data = data %>%
 data$homemed_num[is.na(data$homemed_num)] = 0
 data$home_seizure_med[is.na(data$home_seizure_med)] = 0
 
-data = data %>% filter(!is.na(success))
 
+data = data %>% filter(!is.na(success) & itt == 1 & final_dx != "Non-epileptic spell") 
+
+```
+
+
+```{r}
 Data = data  %>%
   dplyr::select(-hispanic, -race, -cause, -children)
 
 
 write.csv(Data,file = "./data/newData.csv")
 
-id = Data$id
-
-length(unique(id))
 ```
 
+## Sample size
 
+478 events in the original dataset, one of them is excluded due to lack of outcome (outcome = NA). 
 
-## Tables include all 477 participants
+There are 461 patients in total, after removing 16 repeat visits (itt = 0)
 
-### Table 1 by outcome
+There are 421 patients after removing 40 non-epileptic (final_dx = "Non-epileptic spell")
+
+## Tables 1 include 421 patients by treatment
 
 ```{r}
-
 sum = list(
   "Age" = 
     list(
       "mean (sd)" = ~  mean_sd(data$age),
       "Range" = ~ paste(min(data$age),max(data$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$age)),"(",round(sum(is.na(data$age)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$age)),"(",round(sum(is.na(data$age)) / length(data$id) *100,2), "%)")
       ),
   "Age Group" = 
     list(
@@ -169,304 +175,28 @@ sum = list(
     list(
       "Yes" = ~ qwraps2::n_perc(data$pre[!is.na(data$pre)] == 1),
       "No" = ~  qwraps2::n_perc(data$pre[!is.na(data$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$pre)),"(",round(sum(is.na(data$pre)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$pre)),"(",round(sum(is.na(data$pre)) / length(data$id) *100,2), "%)")
     ),
   "Median duration of seizure" = list(
       "mean (sd)" = ~  mean_sd(data$se[!is.na(data$se)]),
       "Range" = ~ paste(min(data$se[!is.na(data$se)]),max(data$se[!is.na(data$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$se)),"(",round(sum(is.na(data$se)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$se)),"(",round(sum(is.na(data$se)) / length(data$id) *100,2), "%)")
   ),
   "Benzodiazepines given before ED arrival" = list(
     
       "Yes" = ~ qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 1),
       "No" = ~  qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$benzos_pre_ed)),"(",round(sum(is.na(data$benzos_pre_ed)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$benzos_pre_ed)),"(",round(sum(is.na(data$benzos_pre_ed)) / length(data$id) *100,2), "%)")
   ),
   "Number of benzo doses" = list(
       "mean (sd)" = ~  mean_sd(data$dose_benzo),
       "Range" = ~ paste(min(data$dose_benzo),max(data$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$dose_benzo)),"(",round(sum(is.na(data$dose_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$dose_benzo)),"(",round(sum(is.na(data$dose_benzo)) / length(data$id) *100,2), "%)")
   ),
   "Interval between 1st dose of benzo and administration of the study drug" = list(
       "mean (sd)" = ~  mean_sd(data$time_benzo),
       "Range" = ~ paste(min(data$time_benzo),max(data$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$time_benzo)),"(",round(sum(is.na(data$time_benzo)) / 477 *100,2), "%)")
-    
-  )
-)
-
-
-whole = summary_table(data,sum)
-
-Success = data %>% filter(success == 1)
-Failure = data %>% filter(success == 0)
-
-sumS = list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(Success$age),
-      "Range" = ~ paste(min(Success$age),max(Success$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Success$age)),"(",round(sum(is.na(Success$age)) / 477 *100,2), "%)")),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(Success$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(Success$age >= 18 & Success$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(Success$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(Success$Male == 0),
-      "Male" = ~ qwraps2::n_perc(Success$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(Success$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(Success$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(Success$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(Success$race != "White" & Success$race != "Black/African American" & Success$race != "Asian" & Success$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(Success$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(Success$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(Success$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-      "0" = ~  qwraps2::n_perc(Success$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(Success$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(Success$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(Success$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(Success$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(Success$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(Success$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(Success$pre[!is.na(Success$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(Success$pre[!is.na(Success$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(Success$pre)),"(",round(sum(is.na(Success$pre)) / 477 *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(Success$se[!is.na(Success$se)]),
-      "Range" = ~ paste(min(Success$se[!is.na(Success$se)]),max(Success$se[!is.na(Success$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Success$se)),"(",round(sum(is.na(Success$se)) / 477 *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(Success$benzos_pre_ed[!is.na(Success$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(Success$benzos_pre_ed[!is.na(Success$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(Success$benzos_pre_ed)),"(",round(sum(is.na(Success$benzos_pre_ed)) / 477 *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(Success$dose_benzo),
-      "Range" = ~ paste(min(Success$dose_benzo),max(Success$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Success$dose_benzo)),"(",round(sum(is.na(Success$dose_benzo)) / 477 *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(Success$time_benzo),
-      "Range" = ~ paste(min(Success$time_benzo),max(Success$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Success$time_benzo)),"(",round(sum(is.na(Success$time_benzo)) / 477 *100,2), "%)")
-    
-  )
-)
-
-sumF=list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(Failure$age),
-      "Range" = ~ paste(min(Failure$age),max(Failure$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Failure$age)),"(",round(sum(is.na(Failure$age)) / 477 *100,2), "%)")),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(Failure$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(Failure$age >= 18 & Failure$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(Failure$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(Failure$Male == 0),
-      "Male" = ~ qwraps2::n_perc(Failure$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(Failure$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(Failure$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(Failure$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(Failure$race != "White" & Failure$race != "Black/African American" & Failure$race != "Asian" & Failure$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(Failure$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(Failure$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(Failure$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-
-      "0" = ~  qwraps2::n_perc(Failure$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(Failure$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(Failure$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(Failure$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(Failure$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(Failure$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(Failure$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(Failure$pre[!is.na(Failure$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(Failure$pre[!is.na(Failure$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(Failure$pre)),"(",round(sum(is.na(Failure$pre)) / 477 *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(Failure$se[!is.na(Failure$se)]),
-      "Range" = ~ paste(min(Failure$se[!is.na(Failure$se)]),max(Failure$se[!is.na(Failure$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Failure$se)),"(",round(sum(is.na(Failure$se)) / 477 *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(Failure$benzos_pre_ed[!is.na(Failure$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(Failure$benzos_pre_ed[!is.na(Failure$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(Failure$benzos_pre_ed)),"(",round(sum(is.na(Failure$benzos_pre_ed)) / 477 *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(Failure$dose_benzo),
-      "Range" = ~ paste(min(Failure$dose_benzo),max(Failure$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Failure$dose_benzo)),"(",round(sum(is.na(Failure$dose_benzo)) / 477 *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(Failure$time_benzo),
-      "Range" = ~ paste(min(Failure$time_benzo),max(Failure$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(Failure$time_benzo)),"(",round(sum(is.na(Failure$time_benzo)) / 477 *100,2), "%)")
-    
-  )
-)
-
-SuccessT = summary_table(Success,sumS)
-FailureT = summary_table(Failure,sumF)
-cbind(whole, SuccessT, FailureT)
-```
-
-
-|                                                                            |data (N = 477)       |Success (N = 277)    |Failure (N = 200)    |
-|:---------------------------------------------------------------------------|:--------------------|:--------------------|:--------------------|
-|**Age**                                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |28.32 &plusmn; 25.32 |25.69 &plusmn; 24.28 |31.95 &plusmn; 26.32 |
-|&nbsp;&nbsp; Range                                                          |1-94                 |1-89                 |1-94                 |
-|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |
-|**Age Group**                                                               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; 0-17y                                                          |229 (48.01%)         |144 (51.99%)         |85 (42.50%)          |
-|&nbsp;&nbsp; 18y - 60 y                                                     |175 (36.69%)         |100 (36.10%)         |75 (37.50%)          |
-|&nbsp;&nbsp; >60 y                                                          |73 (15.30%)          |33 (11.91%)          |40 (20.00%)          |
-|**Gender**                                                                  |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Female                                                         |207 (43.40%)         |122 (44.04%)         |85 (42.50%)          |
-|&nbsp;&nbsp; Male                                                           |270 (56.60%)         |155 (55.96%)         |115 (57.50%)         |
-|**Race**                                                                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Black                                                          |201 (42.14%)         |108 (38.99%)         |93 (46.50%)          |
-|&nbsp;&nbsp; White                                                          |208 (43.61%)         |127 (45.85%)         |81 (40.50%)          |
-|&nbsp;&nbsp; Asian                                                          |18 (3.77%)           |11 (3.97%)           |7 (3.50%)            |
-|&nbsp;&nbsp; Other                                                          |14 (2.94%)           |9 (3.25%)            |5 (2.50%)            |
-|&nbsp;&nbsp; Unknown                                                        |36 (7.55%)           |22 (7.94%)           |14 (7.00%)           |
-|**Ethnicity**                                                               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Hispanic                                                       |77 (16.14%)          |50 (18.05%)          |27 (13.50%)          |
-|&nbsp;&nbsp; Non-Hispanic                                                   |400 (83.86%)         |227 (81.95%)         |173 (86.50%)         |
-|**Home antiepileptic medications**                                          |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; 0                                                              |118 (24.74%)         |63 (22.74%)          |55 (27.50%)          |
-|&nbsp;&nbsp; 1                                                              |143 (29.98%)         |87 (31.41%)          |56 (28.00%)          |
-|&nbsp;&nbsp; 2                                                              |112 (23.48%)         |69 (24.91%)          |43 (21.50%)          |
-|&nbsp;&nbsp; 3                                                              |55 (11.53%)          |33 (11.91%)          |22 (11.00%)          |
-|&nbsp;&nbsp; 4                                                              |28 (5.87%)           |14 (5.05%)           |14 (7.00%)           |
-|&nbsp;&nbsp; 5                                                              |15 (3.14%)           |9 (3.25%)            |6 (3.00%)            |
-|&nbsp;&nbsp; 6                                                              |6 (1.26%)            |2 (0.72%)            |4 (2.00%)            |
-|**History of epilepsy**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Yes                                                            |343 (72.21%)         |205 (74.28%)         |138 (69.35%)         |
-|&nbsp;&nbsp; No                                                             |132 (27.79%)         |71 (25.72%)          |61 (30.65%)          |
-|&nbsp;&nbsp; NA                                                             |2(0.42%)             |1(0.21%)             |1(0.21%)             |
-|**Median duration of seizure**                                              |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |75.78 &plusmn; 58.48 |73.92 &plusmn; 59.88 |78.34 &plusmn; 56.56 |
-|&nbsp;&nbsp; Range                                                          |6-620                |6-620                |9-385                |
-|&nbsp;&nbsp; NA                                                             |44(9.22%)            |26(5.45%)            |18(3.77%)            |
-|**Benzodiazepines given before ED arrival**                                 |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Yes                                                            |218 (56.92%)         |125 (56.82%)         |93 (57.06%)          |
-|&nbsp;&nbsp; No                                                             |165 (43.08%)         |95 (43.18%)          |70 (42.94%)          |
-|&nbsp;&nbsp; NA                                                             |94(19.71%)           |57(11.95%)           |37(7.76%)            |
-|**Number of benzo doses**                                                   |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |2.55 &plusmn; 1.03   |2.48 &plusmn; 1.00   |2.64 &plusmn; 1.07   |
-|&nbsp;&nbsp; Range                                                          |1-9                  |1-8                  |1-9                  |
-|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |
-|**Interval between 1st dose of benzo and administration of the study drug** |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |50.47 &plusmn; 62.94 |51.09 &plusmn; 71.30 |49.62 &plusmn; 49.22 |
-|&nbsp;&nbsp; Range                                                          |5-857                |5-857                |6-360                |
-|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)     
-
-### Table 1 by treatment
-
-```{r}
-
-sum = list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(data$age),
-      "Range" = ~ paste(min(data$age),max(data$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$age)),"(",round(sum(is.na(data$age)) / 477 *100,2), "%)")
-      ),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(data$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(data$age >= 18 & data$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(data$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(data$Male == 0),
-      "Male" = ~ qwraps2::n_perc(data$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(data$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(data$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(data$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(data$race != "White" & data$race != "Black/African American" & data$race != "Asian" & data$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(data$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(data$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(data$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-      "0" = ~  qwraps2::n_perc(data$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(data$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(data$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(data$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(data$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(data$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(data$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(data$pre[!is.na(data$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(data$pre[!is.na(data$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$pre)),"(",round(sum(is.na(data$pre)) / 477 *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(data$se[!is.na(data$se)]),
-      "Range" = ~ paste(min(data$se[!is.na(data$se)]),max(data$se[!is.na(data$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$se)),"(",round(sum(is.na(data$se)) / 477 *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$benzos_pre_ed)),"(",round(sum(is.na(data$benzos_pre_ed)) / 477 *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(data$dose_benzo),
-      "Range" = ~ paste(min(data$dose_benzo),max(data$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$dose_benzo)),"(",round(sum(is.na(data$dose_benzo)) / 477 *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(data$time_benzo),
-      "Range" = ~ paste(min(data$time_benzo),max(data$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$time_benzo)),"(",round(sum(is.na(data$time_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(data$time_benzo)),"(",round(sum(is.na(data$time_benzo)) / length(data$id) *100,2), "%)")
     
   )
 )
@@ -483,7 +213,7 @@ sumA = list(
     list(
       "mean (sd)" = ~  mean_sd(A$age),
       "Range" = ~ paste(min(A$age),max(A$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$age)),"(",round(sum(is.na(A$age)) / 477 *100,2), "%)")),
+      "NA" = ~ paste0(sum(is.na(A$age)),"(",round(sum(is.na(A$age)) / length(A$id) *100,2), "%)")),
   "Age Group" = 
     list(
       "0-17y" = ~ qwraps2::n_perc(A$age<= 17),
@@ -521,28 +251,28 @@ sumA = list(
     list(
       "Yes" = ~ qwraps2::n_perc(A$pre[!is.na(A$pre)] == 1),
       "No" = ~  qwraps2::n_perc(A$pre[!is.na(A$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(A$pre)),"(",round(sum(is.na(A$pre)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(A$pre)),"(",round(sum(is.na(A$pre)) / length(A$id) *100,2), "%)")
     ),
   "Median duration of seizure" = list(
       "mean (sd)" = ~  mean_sd(A$se[!is.na(A$se)]),
       "Range" = ~ paste(min(A$se[!is.na(A$se)]),max(A$se[!is.na(A$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$se)),"(",round(sum(is.na(A$se)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(A$se)),"(",round(sum(is.na(A$se)) / length(A$id) *100,2), "%)")
   ),
   "Benzodiazepines given before ED arrival" = list(
     
       "Yes" = ~ qwraps2::n_perc(A$benzos_pre_ed[!is.na(A$benzos_pre_ed)] == 1),
       "No" = ~  qwraps2::n_perc(A$benzos_pre_ed[!is.na(A$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(A$benzos_pre_ed)),"(",round(sum(is.na(A$benzos_pre_ed)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(A$benzos_pre_ed)),"(",round(sum(is.na(A$benzos_pre_ed)) / length(A$id) *100,2), "%)")
   ),
   "Number of benzo doses" = list(
       "mean (sd)" = ~  mean_sd(A$dose_benzo),
       "Range" = ~ paste(min(A$dose_benzo),max(A$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$dose_benzo)),"(",round(sum(is.na(A$dose_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(A$dose_benzo)),"(",round(sum(is.na(A$dose_benzo)) / length(A$id) *100,2), "%)")
   ),
   "Interval between 1st dose of benzo and administration of the study drug" = list(
       "mean (sd)" = ~  mean_sd(A$time_benzo),
       "Range" = ~ paste(min(A$time_benzo),max(A$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$time_benzo)),"(",round(sum(is.na(A$time_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(A$time_benzo)),"(",round(sum(is.na(A$time_benzo)) / length(A$id) *100,2), "%)")
     
   )
 )
@@ -552,7 +282,7 @@ sumB = list(
     list(
       "mean (sd)" = ~  mean_sd(B$age),
       "Range" = ~ paste(min(B$age),max(B$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$age)),"(",round(sum(is.na(B$age)) / 477 *100,2), "%)")),
+      "NA" = ~ paste0(sum(is.na(B$age)),"(",round(sum(is.na(B$age)) / length(B$id) *100,2), "%)")),
   "Age Group" = 
     list(
       "0-17y" = ~ qwraps2::n_perc(B$age<= 17),
@@ -590,28 +320,28 @@ sumB = list(
     list(
       "Yes" = ~ qwraps2::n_perc(B$pre[!is.na(B$pre)] == 1),
       "No" = ~  qwraps2::n_perc(B$pre[!is.na(B$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(B$pre)),"(",round(sum(is.na(B$pre)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(B$pre)),"(",round(sum(is.na(B$pre)) / length(B$id) *100,2), "%)")
     ),
   "Median duration of seizure" = list(
       "mean (sd)" = ~  mean_sd(B$se[!is.na(B$se)]),
       "Range" = ~ paste(min(B$se[!is.na(B$se)]),max(B$se[!is.na(B$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$se)),"(",round(sum(is.na(B$se)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(B$se)),"(",round(sum(is.na(B$se)) / length(B$id) *100,2), "%)")
   ),
   "Benzodiazepines given before ED arrival" = list(
     
       "Yes" = ~ qwraps2::n_perc(B$benzos_pre_ed[!is.na(B$benzos_pre_ed)] == 1),
       "No" = ~  qwraps2::n_perc(B$benzos_pre_ed[!is.na(B$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(B$benzos_pre_ed)),"(",round(sum(is.na(B$benzos_pre_ed)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(B$benzos_pre_ed)),"(",round(sum(is.na(B$benzos_pre_ed)) / length(B$id) *100,2), "%)")
   ),
   "Number of benzo doses" = list(
       "mean (sd)" = ~  mean_sd(B$dose_benzo),
       "Range" = ~ paste(min(B$dose_benzo),max(B$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$dose_benzo)),"(",round(sum(is.na(B$dose_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(B$dose_benzo)),"(",round(sum(is.na(B$dose_benzo)) / length(B$id) *100,2), "%)")
   ),
   "Interval between 1st dose of benzo and administration of the study drug" = list(
       "mean (sd)" = ~  mean_sd(B$time_benzo),
       "Range" = ~ paste(min(B$time_benzo),max(B$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$time_benzo)),"(",round(sum(is.na(B$time_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(B$time_benzo)),"(",round(sum(is.na(B$time_benzo)) / length(B$id) *100,2), "%)")
     
   )
 )
@@ -621,7 +351,7 @@ sumC = list(
     list(
       "mean (sd)" = ~  mean_sd(C$age),
       "Range" = ~ paste(min(C$age),max(C$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$age)),"(",round(sum(is.na(C$age)) / 477 *100,2), "%)")),
+      "NA" = ~ paste0(sum(is.na(C$age)),"(",round(sum(is.na(C$age)) / length(C$id) *100,2), "%)")),
   "Age Group" = 
     list(
       "0-17y" = ~ qwraps2::n_perc(C$age<= 17),
@@ -659,28 +389,28 @@ sumC = list(
     list(
       "Yes" = ~ qwraps2::n_perc(C$pre[!is.na(C$pre)] == 1),
       "No" = ~  qwraps2::n_perc(C$pre[!is.na(C$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(C$pre)),"(",round(sum(is.na(C$pre)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(C$pre)),"(",round(sum(is.na(C$pre)) / length(C$id) *100,2), "%)")
     ),
   "Median duration of seizure" = list(
       "mean (sd)" = ~  mean_sd(C$se[!is.na(C$se)]),
       "Range" = ~ paste(min(C$se[!is.na(C$se)]),max(C$se[!is.na(C$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$se)),"(",round(sum(is.na(C$se)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(C$se)),"(",round(sum(is.na(C$se)) / length(C$id) *100,2), "%)")
   ),
   "Benzodiazepines given before ED arrival" = list(
     
       "Yes" = ~ qwraps2::n_perc(C$benzos_pre_ed[!is.na(C$benzos_pre_ed)] == 1),
       "No" = ~  qwraps2::n_perc(C$benzos_pre_ed[!is.na(C$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(C$benzos_pre_ed)),"(",round(sum(is.na(C$benzos_pre_ed)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(C$benzos_pre_ed)),"(",round(sum(is.na(C$benzos_pre_ed)) / length(C$id) *100,2), "%)")
   ),
   "Number of benzo doses" = list(
       "mean (sd)" = ~  mean_sd(C$dose_benzo),
       "Range" = ~ paste(min(C$dose_benzo),max(C$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$dose_benzo)),"(",round(sum(is.na(C$dose_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(C$dose_benzo)),"(",round(sum(is.na(C$dose_benzo)) / length(C$id) *100,2), "%)")
   ),
   "Interval between 1st dose of benzo and administration of the study drug" = list(
       "mean (sd)" = ~  mean_sd(C$time_benzo),
       "Range" = ~ paste(min(C$time_benzo),max(C$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$time_benzo)),"(",round(sum(is.na(C$time_benzo)) / 477 *100,2), "%)")
+      "NA" = ~ paste0(sum(is.na(C$time_benzo)),"(",round(sum(is.na(C$time_benzo)) / length(C$id) *100,2), "%)")
     
   )
 )
@@ -691,58 +421,59 @@ tableC = summary_table(C,sumC)
 cbind(whole, tableA,tableB,tableC)
 ```
 
-|                                                                            |data (N = 477)       |A (N = 179)          |B (N = 149)          |C (N = 149)          |
+|                                                                            |data (N = 421)       |A (N = 159)          |B (N = 131)          |C (N = 131)          |
 |:---------------------------------------------------------------------------|:--------------------|:--------------------|:--------------------|:--------------------|
 |**Age**                                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |28.32 &plusmn; 25.32 |28.62 &plusmn; 25.75 |28.38 &plusmn; 25.12 |27.90 &plusmn; 25.17 |
+|&nbsp;&nbsp; mean (sd)                                                      |28.19 &plusmn; 26.22 |28.80 &plusmn; 26.86 |27.28 &plusmn; 25.45 |28.35 &plusmn; 26.38 |
 |&nbsp;&nbsp; Range                                                          |1-94                 |1-94                 |1-84                 |1-85                 |
 |&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
 |**Age Group**                                                               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; 0-17y                                                          |229 (48.01%)         |86 (48.04%)          |73 (48.99%)          |70 (46.98%)          |
-|&nbsp;&nbsp; 18y - 60 y                                                     |175 (36.69%)         |68 (37.99%)          |52 (34.90%)          |55 (36.91%)          |
-|&nbsp;&nbsp; >60 y                                                          |73 (15.30%)          |25 (13.97%)          |24 (16.11%)          |24 (16.11%)          |
+|&nbsp;&nbsp; 0-17y                                                          |217 (51.54%)         |81 (50.94%)          |70 (53.44%)          |66 (50.38%)          |
+|&nbsp;&nbsp; 18y - 60 y                                                     |135 (32.07%)         |54 (33.96%)          |39 (29.77%)          |42 (32.06%)          |
+|&nbsp;&nbsp; >60 y                                                          |69 (16.39%)          |24 (15.09%)          |22 (16.79%)          |23 (17.56%)          |
 |**Gender**                                                                  |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Female                                                         |207 (43.40%)         |82 (45.81%)          |60 (40.27%)          |65 (43.62%)          |
-|&nbsp;&nbsp; Male                                                           |270 (56.60%)         |97 (54.19%)          |89 (59.73%)          |84 (56.38%)          |
+|&nbsp;&nbsp; Female                                                         |176 (41.81%)         |69 (43.40%)          |52 (39.69%)          |55 (41.98%)          |
+|&nbsp;&nbsp; Male                                                           |245 (58.19%)         |90 (56.60%)          |79 (60.31%)          |76 (58.02%)          |
 |**Race**                                                                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Black                                                          |201 (42.14%)         |77 (43.02%)          |58 (38.93%)          |66 (44.30%)          |
-|&nbsp;&nbsp; White                                                          |208 (43.61%)         |79 (44.13%)          |68 (45.64%)          |61 (40.94%)          |
-|&nbsp;&nbsp; Asian                                                          |18 (3.77%)           |7 (3.91%)            |6 (4.03%)            |5 (3.36%)            |
-|&nbsp;&nbsp; Other                                                          |14 (2.94%)           |6 (3.35%)            |3 (2.01%)            |5 (3.36%)            |
-|&nbsp;&nbsp; Unknown                                                        |36 (7.55%)           |10 (5.59%)           |14 (9.40%)           |12 (8.05%)           |
+|&nbsp;&nbsp; Black                                                          |182 (43.23%)         |70 (44.03%)          |51 (38.93%)          |61 (46.56%)          |
+|&nbsp;&nbsp; White                                                          |179 (42.52%)         |68 (42.77%)          |59 (45.04%)          |52 (39.69%)          |
+|&nbsp;&nbsp; Asian                                                          |17 (4.04%)           |7 (4.40%)            |5 (3.82%)            |5 (3.82%)            |
+|&nbsp;&nbsp; Other                                                          |11 (2.61%)           |5 (3.14%)            |3 (2.29%)            |3 (2.29%)            |
+|&nbsp;&nbsp; Unknown                                                        |32 (7.60%)           |9 (5.66%)            |13 (9.92%)           |10 (7.63%)           |
 |**Ethnicity**                                                               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Hispanic                                                       |77 (16.14%)          |29 (16.20%)          |20 (13.42%)          |28 (18.79%)          |
-|&nbsp;&nbsp; Non-Hispanic                                                   |400 (83.86%)         |150 (83.80%)         |129 (86.58%)         |121 (81.21%)         |
+|&nbsp;&nbsp; Hispanic                                                       |71 (16.86%)          |28 (17.61%)          |19 (14.50%)          |24 (18.32%)          |
+|&nbsp;&nbsp; Non-Hispanic                                                   |350 (83.14%)         |131 (82.39%)         |112 (85.50%)         |107 (81.68%)         |
 |**Home antiepileptic medications**                                          |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; 0                                                              |118 (24.74%)         |45 (25.14%)          |32 (21.48%)          |41 (27.52%)          |
-|&nbsp;&nbsp; 1                                                              |143 (29.98%)         |52 (29.05%)          |49 (32.89%)          |42 (28.19%)          |
-|&nbsp;&nbsp; 2                                                              |112 (23.48%)         |41 (22.91%)          |38 (25.50%)          |33 (22.15%)          |
-|&nbsp;&nbsp; 3                                                              |55 (11.53%)          |20 (11.17%)          |20 (13.42%)          |15 (10.07%)          |
-|&nbsp;&nbsp; 4                                                              |28 (5.87%)           |11 (6.15%)           |5 (3.36%)            |12 (8.05%)           |
-|&nbsp;&nbsp; 5                                                              |15 (3.14%)           |7 (3.91%)            |4 (2.68%)            |4 (2.68%)            |
-|&nbsp;&nbsp; 6                                                              |6 (1.26%)            |3 (1.68%)            |1 (0.67%)            |2 (1.34%)            |
+|&nbsp;&nbsp; 0                                                              |107 (25.42%)         |40 (25.16%)          |29 (22.14%)          |38 (29.01%)          |
+|&nbsp;&nbsp; 1                                                              |125 (29.69%)         |47 (29.56%)          |42 (32.06%)          |36 (27.48%)          |
+|&nbsp;&nbsp; 2                                                              |97 (23.04%)          |37 (23.27%)          |34 (25.95%)          |26 (19.85%)          |
+|&nbsp;&nbsp; 3                                                              |48 (11.40%)          |17 (10.69%)          |17 (12.98%)          |14 (10.69%)          |
+|&nbsp;&nbsp; 4                                                              |24 (5.70%)           |9 (5.66%)            |4 (3.05%)            |11 (8.40%)           |
+|&nbsp;&nbsp; 5                                                              |14 (3.33%)           |6 (3.77%)            |4 (3.05%)            |4 (3.05%)            |
+|&nbsp;&nbsp; 6                                                              |6 (1.43%)            |3 (1.89%)            |1 (0.76%)            |2 (1.53%)            |
 |**History of epilepsy**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Yes                                                            |343 (72.21%)         |127 (71.35%)         |108 (72.97%)         |108 (72.48%)         |
-|&nbsp;&nbsp; No                                                             |132 (27.79%)         |51 (28.65%)          |40 (27.03%)          |41 (27.52%)          |
-|&nbsp;&nbsp; NA                                                             |2(0.42%)             |1(0.21%)             |1(0.21%)             |0(0%)                |
+|&nbsp;&nbsp; Yes                                                            |305 (72.79%)         |112 (70.89%)         |98 (75.38%)          |95 (72.52%)          |
+|&nbsp;&nbsp; No                                                             |114 (27.21%)         |46 (29.11%)          |32 (24.62%)          |36 (27.48%)          |
+|&nbsp;&nbsp; NA                                                             |2(0.48%)             |1(0.63%)             |1(0.76%)             |0(0%)                |
 |**Median duration of seizure**                                              |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |75.78 &plusmn; 58.48 |73.40 &plusmn; 46.41 |78.39 &plusmn; 69.85 |76.11 &plusmn; 59.75 |
-|&nbsp;&nbsp; Range                                                          |6-620                |6-305                |7-620                |9-377                |
-|&nbsp;&nbsp; NA                                                             |44(9.22%)            |14(2.94%)            |16(3.35%)            |14(2.94%)            |
+|&nbsp;&nbsp; mean (sd)                                                      |77.47 &plusmn; 60.07 |73.72 &plusmn; 46.88 |80.96 &plusmn; 72.33 |78.57 &plusmn; 61.25 |
+|&nbsp;&nbsp; Range                                                          |6-620                |6-305                |10-620               |10-377               |
+|&nbsp;&nbsp; NA                                                             |29(6.89%)            |10(6.29%)            |10(7.63%)            |9(6.87%)             |
 |**Benzodiazepines given before ED arrival**                                 |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; Yes                                                            |218 (56.92%)         |88 (61.11%)          |68 (57.63%)          |62 (51.24%)          |
-|&nbsp;&nbsp; No                                                             |165 (43.08%)         |56 (38.89%)          |50 (42.37%)          |59 (48.76%)          |
-|&nbsp;&nbsp; NA                                                             |94(19.71%)           |35(7.34%)            |31(6.5%)             |28(5.87%)            |
+|&nbsp;&nbsp; Yes                                                            |192 (55.49%)         |78 (59.54%)          |61 (57.01%)          |53 (49.07%)          |
+|&nbsp;&nbsp; No                                                             |154 (44.51%)         |53 (40.46%)          |46 (42.99%)          |55 (50.93%)          |
+|&nbsp;&nbsp; NA                                                             |75(17.81%)           |28(17.61%)           |24(18.32%)           |23(17.56%)           |
 |**Number of benzo doses**                                                   |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |2.55 &plusmn; 1.03   |2.65 &plusmn; 1.06   |2.49 &plusmn; 0.89   |2.48 &plusmn; 1.13   |
-|&nbsp;&nbsp; Range                                                          |1-9                  |1-8                  |1-5                  |1-9                  |
+|&nbsp;&nbsp; mean (sd)                                                      |2.48 &plusmn; 0.94   |2.56 &plusmn; 0.97   |2.47 &plusmn; 0.89   |2.39 &plusmn; 0.97   |
+|&nbsp;&nbsp; Range                                                          |1-7                  |1-7                  |1-5                  |1-6                  |
 |&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
 |**Interval between 1st dose of benzo and administration of the study drug** |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
-|&nbsp;&nbsp; mean (sd)                                                      |50.47 &plusmn; 62.94 |53.56 &plusmn; 53.44 |50.71 &plusmn; 75.70 |46.53 &plusmn; 59.56 |
-|&nbsp;&nbsp; Range                                                          |5-857                |6-360                |7-857                |5-557                |
+|&nbsp;&nbsp; mean (sd)                                                      |49.59 &plusmn; 63.11 |49.99 &plusmn; 45.72 |51.98 &plusmn; 80.04 |46.70 &plusmn; 62.51 |
+|&nbsp;&nbsp; Range                                                          |5-857                |6-335                |7-857                |5-557                |
 |&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
 
-### Table 2 Seizure types
+
+## Table 2 Seizure types
 
 ```{r}
 type = list(
@@ -760,13 +491,13 @@ type = list(
     )
 )
 
-Success.A = Success %>% filter(drug =="A")
-Success.B = Success %>% filter(drug =="B")
-Success.C = Success %>% filter(drug =="C")
+Success.A = A %>% filter(success == 1)
+Success.B = B %>% filter(success == 1)
+Success.C = C %>% filter(success == 1)
 
-Failure.A = Failure %>% filter(drug =="A")
-Failure.B = Failure %>% filter(drug =="B")
-Failure.C = Failure %>% filter(drug =="C")
+Failure.A = A %>% filter(success == 0)
+Failure.B = B %>% filter(success == 0)
+Failure.C = C %>% filter(success == 0)
 
 typesa = list(
   "Seizure Type" = 
@@ -868,30 +599,18 @@ fcT = summary_table(Failure.C,typefc)
 cbind(saT,sbT,scT,faT,fbT,fcT)
 
 ```
+|                                                                          |Success.A (N = 93) |Success.B (N = 71) |Success.C (N = 77) |Failure.A (N = 66) |Failure.B (N = 60) |Failure.C (N = 54) |
+|:-------------------------------------------------------------------------|:------------------|:------------------|:------------------|:------------------|:------------------|:------------------|
+|**Seizure Type**                                                          |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |
+|&nbsp;&nbsp; Stroke                                                       |3 (3.23%)          |4 (5.63%)          |1 (1.30%)          |3 (4.55%)          |4 (6.67%)          |2 (3.70%)          |
+|&nbsp;&nbsp; Electrolyte anomalies                                        |2 (2.15%)          |0 (0.00%)          |0 (0.00%)          |1 (1.52%)          |2 (3.33%)          |1 (1.85%)          |
+|&nbsp;&nbsp; CNS Tumors/CNS infection                                     |1 (1.08%)          |3 (4.23%)          |0 (0.00%)          |4 (6.06%)          |2 (3.33%)          |5 (9.26%)          |
+|&nbsp;&nbsp; Unprovoked                                                   |32 (34.41%)        |22 (30.99%)        |27 (35.06%)        |23 (34.85%)        |28 (46.67%)        |12 (22.22%)        |
+|&nbsp;&nbsp; Anti-epileptic drug withdrawal/non compliance                |14 (15.05%)        |10 (14.08%)        |13 (16.88%)        |10 (15.15%)        |5 (8.33%)          |3 (5.56%)          |
+|&nbsp;&nbsp; Febrile illness                                              |22 (23.66%)        |16 (22.54%)        |20 (25.97%)        |9 (13.64%)         |8 (13.33%)         |15 (27.78%)        |
+|&nbsp;&nbsp; Insufficient information to determine/idiopathic/cryptogenic |0 (0.00%)          |2 (2.82%)          |4 (5.19%)          |7 (10.61%)         |1 (1.67%)          |4 (7.41%)          |
+|&nbsp;&nbsp; Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)  |6 (6.45%)          |3 (4.23%)          |3 (3.90%)          |5 (7.58%)          |3 (5.00%)          |5 (9.26%)          |
+|&nbsp;&nbsp; Other                                                        |13 (13.98%)        |11 (15.49%)        |9 (11.69%)         |4 (6.06%)          |7 (11.67%)         |7 (12.96%)         |
 
-|                                                                          |Success.A (N = 105) |Success.B (N = 83) |Success.C (N = 89) |Failure.A (N = 74) |Failure.B (N = 66) |Failure.C (N = 60) |
-|:-------------------------------------------------------------------------|:-------------------|:------------------|:------------------|:------------------|:------------------|:------------------|
-|**Seizure Type**                                                  |&nbsp;&nbsp;        |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |
-|&nbsp;&nbsp; Stroke                                                       |3 (2.86%)           |4 (4.82%)          |1 (1.12%)          |3 (4.05%)          |4 (6.06%)          |2 (3.33%)          |
-|&nbsp;&nbsp; Electrolyte anomalies                                        |2 (1.90%)           |0 (0.00%)          |0 (0.00%)          |1 (1.35%)          |2 (3.03%)          |1 (1.67%)          |
-|&nbsp;&nbsp; CNS Tumors/CNS infection                                     |1 (0.95%)           |3 (3.61%)          |0 (0.00%)          |4 (5.41%)          |2 (3.03%)          |5 (8.33%)          |
-|&nbsp;&nbsp; Unprovoked                                                   |39 (37.14%)         |26 (31.33%)        |31 (34.83%)        |25 (33.78%)        |31 (46.97%)        |14 (23.33%)        |
-|&nbsp;&nbsp; Anti-epileptic drug withdrawal/non compliance                |14 (13.33%)         |12 (14.46%)        |16 (17.98%)        |10 (13.51%)        |5 (7.58%)          |4 (6.67%)          |
-|&nbsp;&nbsp; Febrile illness                                              |23 (21.90%)         |16 (19.28%)        |21 (23.60%)        |10 (13.51%)        |9 (13.64%)         |15 (25.00%)        |
-|&nbsp;&nbsp; Insufficient information to determine/idiopathic/cryptogenic |0 (0.00%)           |2 (2.41%)          |5 (5.62%)          |9 (12.16%)         |1 (1.52%)          |4 (6.67%)          |
-|&nbsp;&nbsp; Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)  |6 (5.71%)           |5 (6.02%)          |3 (3.37%)          |7 (9.46%)          |4 (6.06%)          |5 (8.33%)          |
-|&nbsp;&nbsp; Other                                                        |17 (16.19%)         |15 (18.07%)        |12 (13.48%)        |5 (6.76%)          |8 (12.12%)         |10 (16.67%)        |
-
-## Plot
-
-```{r include = TRUE}
-data %>% filter(time_benzo<=60) %>% 
-ggplot(aes(x = time_benzo,fill = factor(success)) ) + 
-  geom_density(alpha = .3) +
-  facet_grid(drug~.)
-
-ggplot(data, aes(x = factor(dose_benzo))) +
-  geom_bar() + facet_grid(success~.)
-```
 
 
