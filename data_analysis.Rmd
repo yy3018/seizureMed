@@ -6,26 +6,20 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F)
-library(tidyverse)
-library(patchwork)
-library(MASS)
+knitr::opts_chunk$set(echo = FALSE, warning = F,message = F, results = "hide",
+                      fig.width = 15,fig.height = 8)
 ```
 
 
-```{r data import, include=FALSE}
-data = read_csv("./data/newData.csv") %>% select(-X1) %>% 
+```{r data import}
+
+library(tidyverse)
+library(patchwork)
+library(MASS)
+
+data = read_csv("./data/newData.csv") %>% dplyr::select(-X1) %>% 
   mutate(age_group = factor(age_group, levels = c("child", "adult", "senior" )),
-         gender = recode(data$Male, "0" = "Female", "1" = "Male"),
-         homemed = recode(data$home_seizure_med, "0" = "No", "1" = "Yes"),
-         se_group = factor(se_group, levels = c("[0,30)", "[30,60)", "[60,)" )),
-         benzo = recode(data$benzos_pre_ed, "0" = "No", "1" = "Yes"),
-         benzonum = case_when(dose_benzo <= 2 ~ "1~2",
-                              dose_benzo > 2 ~ "3~7"),
-         time =  case_when(time_benzo < 15 ~ "[0,15)",
-                     time_benzo >= 15 & time_benzo < 30 ~ "[15,30)",
-                     time_benzo >= 30 & time_benzo < 45 ~ "[30,45)",
-                     time_benzo >= 45 ~ "[45,)")) 
+         se_group = factor(se_group, levels = c("[0,30)", "[30,60)", "[60,)" )))
   
   
 dataA = data %>% filter(drug == "A")
@@ -33,7 +27,7 @@ dataB = data %>% filter(drug == "B")
 dataC = data %>% filter(drug == "C")
 ```
 
-# bar plot with proportion as well as odds ratio / univariate analysis
+# Bar plot with proportion as well as odds ratio / univariate analysis
 
 Plots below include information of 
 
@@ -406,7 +400,7 @@ benzonumP + geom_text(
 
 ## Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/ (n = 337)
 
-```{r}
+```{r fig.width = 18,fig.height = 8}
 data_timeperc = data %>% 
   filter(!is.na(time)) %>% 
   group_by(drug,time, success) %>% 
@@ -458,7 +452,7 @@ timeP + geom_text(
 
 
 
-# variable selection 
+# Variable selection 
 
 ## include 322 patients after remove NA in age_group, gender, provoked, homemed, se_group, benzo, benzonum,time
 
@@ -505,7 +499,8 @@ summary(both1C) # formula = success ~ homemed
 # provoked is the last removed variable
 ```
 
-Summary: 
+**Summary:**
+
 
 Forward selection's tend to keep all variables in all situation.
 
