@@ -6,9 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = F)
 library(tidyverse)
 library(patchwork)
+library(MASS)
 ```
 
 
@@ -33,6 +34,14 @@ dataC = data %>% filter(drug == "C")
 ```
 
 # bar plot with proportion as well as odds ratio / univariate analysis
+
+Plots below include information of 
+
+* Number of patients
+* Proportion of Patients by success or not
+* Odds ratio and its 95% confidence interval with the reference group (always the first subgroup)
+
+by treatment and subgroup.
 
 ## age group
 
@@ -290,7 +299,7 @@ se_groupP + geom_text(
 
 ```
 
-## Benzodiazepine prior to ED visit (n=346)
+## Benzodiazepine prior to ED visit (n = 346)
 
 ```{r}
 data_benzoperc = data %>% 
@@ -397,7 +406,6 @@ benzonumP + geom_text(
 
 ## Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/ (n = 337)
 
-
 ```{r}
 data_timeperc = data %>% 
   filter(!is.na(time)) %>% 
@@ -450,5 +458,112 @@ timeP + geom_text(
 
 
 
-# variable selection
+# variable selection 
 
+## include 322 patients after remove NA in age_group, gender, provoked, homemed, se_group, benzo, benzonum,time
+
+```{r}
+library(MASS)
+data_vs1 = data %>% dplyr::select(success, drug, age_group,gender,provoked,homemed,se_group,benzo,benzonum,time) %>% drop_na()
+
+data_vs1A = data_vs1 %>% filter(drug == "A") %>% dplyr::select(-drug)
+data_vs1B = data_vs1 %>% filter(drug == "B") %>% dplyr::select(-drug)
+data_vs1C = data_vs1 %>% filter(drug == "C") %>% dplyr::select(-drug)
+
+# drugA
+full1A = glm(success ~., data = data_vs1A, family = "binomial")
+for1A = stepAIC(full1A, direction = "forward")
+back1A = stepAIC(full1A, direction = "backward")
+both1A = stepAIC(full1A, direction = "both")
+
+summary(for1A) # keep all variables
+summary(back1A) # formula = success ~ age_group + benzo + benzonum
+summary(both1A) # formula = success ~ age_group + benzo + benzonum
+
+
+# drugB
+full1B = glm(success ~., data = data_vs1B, family = "binomial")
+for1B = stepAIC(full1B, direction = "forward")
+back1B = stepAIC(full1B, direction = "backward")
+both1B = stepAIC(full1B, direction = "both")
+
+summary(for1B) # keep all variables
+summary(back1B) # formula = success ~ se_group
+summary(both1B) # formula = success ~ se_group
+# provoked is the last removed variable
+
+
+# drugC
+full1C = glm(success ~., data = data_vs1C, family = "binomial")
+for1C = stepAIC(full1C, direction = "forward")
+back1C = stepAIC(full1C, direction = "backward")
+both1C = stepAIC(full1C, direction = "both")
+
+summary(for1C) # keep all variables
+summary(back1C) # formula = success ~ homemed
+summary(both1C) # formula = success ~ homemed
+# provoked is the last removed variable
+```
+
+Summary: 
+
+Forward selection's tend to keep all variables in all situation.
+
+For drug A, both backward selection and stepwise regression generate formula as 
+
+$$success \sim age + benzo + benzonum$$
+For drug B, both backward selection and stepwise regression generate formula as 
+
+$$success \sim se\ group$$
+*Provoked is the last removed variable*
+
+
+For drug C, both backward selection and stepwise regression generate formula as 
+
+$$success \sim homemed$$
+*Provoked is the last removed variable*
+
+
+## include 392 patients after remove NA in age_group, gender, provoked, homemed, se_group,  benzonum
+
+In this case, I exclude variables related to Benzodiazepine prior to ED visit and Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/. These 2 variable include large number of NAs. In addition, from the bar plot, univariate analysis, and above variable selection, they have none influence to success odds of drug B and drug C
+
+```{r}
+data_vs2 = data %>% dplyr::select(success, drug, age_group,gender,provoked,homemed,se_group,benzonum) %>% drop_na()
+
+data_vs2B = data_vs2 %>% filter(drug == "B") %>% dplyr::select(-drug)
+data_vs2C = data_vs2 %>% filter(drug == "C") %>% dplyr::select(-drug)
+
+# drugB
+full2B = glm(success ~., data = data_vs2B, family = "binomial")
+for2B = stepAIC(full2B, direction = "forward")
+back2B = stepAIC(full2B, direction = "backward")
+both2B = stepAIC(full2B, direction = "both")
+
+summary(for2B) # keep all variables
+summary(back2B) # formula = success ~ provoked + se_group
+summary(both2B) # formula = success ~ provoked + se_group
+
+
+# drugC
+full2C = glm(success ~., data = data_vs2C, family = "binomial")
+for2C = stepAIC(full2C, direction = "forward")
+back2C = stepAIC(full2C, direction = "backward")
+both2C = stepAIC(full2C, direction = "both")
+
+summary(for2C) # keep all variables
+summary(back2C) # formula = success ~ homemed
+summary(both2C) # formula = success ~ homemed
+# provoked is the last removed variable
+
+```
+
+For drug B, both backward selection and stepwise regression generate formula as 
+
+$$success \sim provoked + se\ group$$
+
+
+For drug C, both backward selection and stepwise regression generate formula as 
+
+$$success \sim homemed$$
+*Provoked is the last removed variable*

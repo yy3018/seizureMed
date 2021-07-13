@@ -122,11 +122,11 @@ write.csv(Data,file = "./data/newData.csv")
 
 ## Sample size
 
-478 events in the original dataset, one of them is excluded due to lack of outcome (outcome = NA). 
+478 events in the original dataset, one of them is excluded due to lack of outcome (outcome = NA). -> n = 477
 
-There are 461 patients in total, after removing 16 repeat visits (itt = 0)
+After removing 16 repeat visits (itt = 0), there are 461 patients in total, -> n = 461
 
-There are 421 patients after removing 40 non-epileptic (final_dx = "Non-epileptic spell")
+There are 421 patients after removing 40 non-epileptic (final_dx = "Non-epileptic spell") -> n = 421
 
 ## Tables 1 include 421 patients by treatment
 
