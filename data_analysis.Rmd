@@ -1,0 +1,454 @@
+---
+title: "Data Analysis"
+author: "Xiaoyang Li"
+date: "2021/7/1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(patchwork)
+```
+
+
+```{r data import, include=FALSE}
+data = read_csv("./data/newData.csv") %>% select(-X1) %>% 
+  mutate(age_group = factor(age_group, levels = c("child", "adult", "senior" )),
+         gender = recode(data$Male, "0" = "Female", "1" = "Male"),
+         homemed = recode(data$home_seizure_med, "0" = "No", "1" = "Yes"),
+         se_group = factor(se_group, levels = c("[0,30)", "[30,60)", "[60,)" )),
+         benzo = recode(data$benzos_pre_ed, "0" = "No", "1" = "Yes"),
+         benzonum = case_when(dose_benzo <= 2 ~ "1~2",
+                              dose_benzo > 2 ~ "3~7"),
+         time =  case_when(time_benzo < 15 ~ "[0,15)",
+                     time_benzo >= 15 & time_benzo < 30 ~ "[15,30)",
+                     time_benzo >= 30 & time_benzo < 45 ~ "[30,45)",
+                     time_benzo >= 45 ~ "[45,)")) 
+  
+  
+dataA = data %>% filter(drug == "A")
+dataB = data %>% filter(drug == "B")
+dataC = data %>% filter(drug == "C")
+```
+
+# bar plot with proportion as well as odds ratio / univariate analysis
+
+## age group
+
+```{r}
+data_ageperc = data %>% 
+  group_by(drug,age_group, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+ageP = data %>%
+  ggplot(aes(x = age_group, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_ageperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+ageA_glm = glm(success ~ age_group, dataA, family = "binomial")
+summary(ageA_glm)
+exp(cbind(OR = coef(ageA_glm), confint(ageA_glm)))
+
+ageB_glm = glm(success ~ age_group, dataB, family = "binomial")
+summary(ageB_glm)
+exp(cbind(OR = coef(ageB_glm), confint(ageB_glm)))
+  
+ageC_glm = glm(success ~ age_group, dataC, family = "binomial")
+summary(ageC_glm)
+exp(cbind(OR = coef(ageC_glm), confint(ageC_glm)))
+
+age_odds <- data.frame(
+  label = c("1", "0.61(0.30, 1.25)", "0.34(0.14, 0.83)",
+            "1","0.98(0.44, 2.18)" ,"0.73(0.28, 1.88)" , 
+            "1", "0.68(0.31, 1.52)", "0.45(0.17, 1.17)" ),
+  drug   = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
+  x     = c("child", "adult", "senior","child", "adult", "senior","child", "adult", "senior"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,9)
+)
+
+ageP + geom_text(
+  data    = age_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+## gender
+
+```{r}
+data_genderperc = data %>% 
+  group_by(drug,gender, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+genderP = data %>%
+  ggplot(aes(x = gender, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_genderperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+genderA_glm = glm(success ~ gender, dataA, family = "binomial")
+summary(genderA_glm)
+exp(cbind(OR = coef(genderA_glm), confint(genderA_glm)))
+
+genderB_glm = glm(success ~ gender, dataB, family = "binomial")
+summary(genderB_glm)
+exp(cbind(OR = coef(genderB_glm), confint(genderB_glm)))
+  
+genderC_glm = glm(success ~ gender, dataC, family = "binomial")
+summary(genderC_glm)
+exp(cbind(OR = coef(genderC_glm), confint(genderC_glm)))
+
+gender_odds <- data.frame(
+  label = c("1", "0.93(0.49, 1.77)", 
+            "1","0.90(0.44, 1.81)" ,
+            "1", "1.19(0.59, 2.40)"),
+  drug   = c("A", "A",  "B", "B", "C", "C"),
+  x     = c("Female", "Male","Female", "Male","Female", "Male"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,6)
+  
+)
+
+genderP + geom_text(
+  data    = gender_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+## Provoked or not
+
+```{r}
+data_provokedperc = data %>% 
+  group_by(drug,provoked, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+provokedP = data %>%
+  ggplot(aes(x = provoked, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_provokedperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+provokedA_glm = glm(success ~ provoked, dataA, family = "binomial")
+summary(provokedA_glm)
+exp(cbind(OR = coef(provokedA_glm), confint(provokedA_glm)))
+
+provokedB_glm = glm(success ~ provoked, dataB, family = "binomial")
+summary(provokedB_glm)
+exp(cbind(OR = coef(provokedB_glm), confint(provokedB_glm)))
+  
+provokedC_glm = glm(success ~ provoked, dataC, family = "binomial")
+summary(provokedC_glm)
+exp(cbind(OR = coef(provokedC_glm), confint(provokedC_glm)))
+
+provoked_odds <- data.frame(
+  label = c("1", "1.02(0.52, 1.98)", 
+            "1", "1.95(0.96, 4.02)",
+            "1", "0.53(0.23, 1.15)"),
+  drug   = c("A", "A",  "B", "B", "C", "C"),
+  x     = c("No", "Yes","No", "Yes","No", "Yes"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,6)
+  
+)
+
+provokedP + geom_text(
+  data    = provoked_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+
+## Home antiepileptic medication
+
+```{r}
+data_homemedperc = data %>% 
+  group_by(drug,homemed, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+homemedP = data %>%
+  ggplot(aes(x = homemed, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_homemedperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+homemedA_glm = glm(success ~ homemed, dataA, family = "binomial")
+summary(homemedA_glm)
+exp(cbind(OR = coef(homemedA_glm), confint(homemedA_glm)))
+
+homemedB_glm = glm(success ~ homemed, dataB, family = "binomial")
+summary(homemedB_glm)
+exp(cbind(OR = coef(homemedB_glm), confint(homemedB_glm)))
+  
+homemedC_glm = glm(success ~ homemed, dataC, family = "binomial")
+summary(homemedC_glm)
+exp(cbind(OR = coef(homemedC_glm), confint(homemedC_glm)))
+
+homemed_odds <- data.frame(
+  label = c("1", "0.98(0.49, 1.92)", 
+            "1", "0.94(0.44, 2.01)",
+            "1", "2.11(1.01, 4.48)"),
+  drug   = c("A", "A",  "B", "B", "C", "C"),
+  x     = c("No", "Yes","No", "Yes","No", "Yes"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,6)
+  
+)
+
+homemedP + geom_text(
+  data    = homemed_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+## Seizure duration 0/30/60/ (n = 392)
+
+```{r}
+data_se_groupperc = data %>% 
+  filter(!is.na(se_group)) %>% 
+  group_by(drug,se_group, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+se_groupP = data %>%
+  filter(!is.na(se_group)) %>% 
+  ggplot(aes(x = se_group, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_se_groupperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+se_groupA_glm = glm(success ~ se_group, dataA, family = "binomial")
+summary(se_groupA_glm)
+exp(cbind(OR = coef(se_groupA_glm), confint(se_groupA_glm)))
+
+se_groupB_glm = glm(success ~ se_group, dataB, family = "binomial")
+summary(se_groupB_glm)
+exp(cbind(OR = coef(se_groupB_glm), confint(se_groupB_glm)))
+  
+se_groupC_glm = glm(success ~ se_group, dataC, family = "binomial")
+summary(se_groupC_glm)
+exp(cbind(OR = coef(se_groupC_glm), confint(se_groupC_glm)))
+
+se_group_odds <- data.frame(
+  label = c("1", "0.87(0.26, 2.74)", "0.88(0.28, 2.61)",
+            "1","0.17(0.02, 0.72)" ,"0.21(0.03, 0.86)" , 
+            "1", "0.92(0.26, 3.07)", "1.03(0.32, 3.21)" ),
+  drug   = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
+  x     = c("[0,30)", "[30,60)", "[60,)","[0,30)", "[30,60)", "[60,)","[0,30)", "[30,60)", "[60,)"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,9)
+)
+
+se_groupP + geom_text(
+  data    = se_group_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+## Benzodiazepine prior to ED visit (n=346)
+
+```{r}
+data_benzoperc = data %>% 
+  filter(!is.na(benzo)) %>% 
+  group_by(drug,benzo, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+benzoP = data %>% 
+  filter(!is.na(benzo))%>%
+  ggplot(aes(x = benzo, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_benzoperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+benzoA_glm = glm(success ~ benzo, dataA, family = "binomial")
+summary(benzoA_glm)
+exp(cbind(OR = coef(benzoA_glm), confint(benzoA_glm)))
+
+benzoB_glm = glm(success ~ benzo, dataB, family = "binomial")
+summary(benzoB_glm)
+exp(cbind(OR = coef(benzoB_glm), confint(benzoB_glm)))
+  
+benzoC_glm = glm(success ~ benzo, dataC, family = "binomial")
+summary(benzoC_glm)
+exp(cbind(OR = coef(benzoC_glm), confint(benzoC_glm)))
+
+benzo_odds <- data.frame(
+  label = c("1", "1.35(0.67, 2.75)", 
+            "1", "0.93(0.43, 2.00)",
+            "1", "1.09(0.51, 2.35)"),
+  drug   = c("A", "A",  "B", "B", "C", "C"),
+  x     = c("No", "Yes","No", "Yes","No", "Yes"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,6)
+  
+)
+
+benzoP + geom_text(
+  data    = benzo_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+```
+
+
+## Number of doses of benzodiazepine given prior to study drug
+(3-7 doses vs 1-2 doses)
+
+```{r}
+data_benzonumperc = data %>% 
+  group_by(drug,benzonum, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+benzonumP = data %>%
+  ggplot(aes(x = benzonum, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_benzonumperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+benzonumA_glm = glm(success ~ benzonum, dataA, family = "binomial")
+summary(benzonumA_glm)
+exp(cbind(OR = coef(benzonumA_glm), confint(benzonumA_glm)))
+
+benzonumB_glm = glm(success ~ benzonum, dataB, family = "binomial")
+summary(benzonumB_glm)
+exp(cbind(OR = coef(benzonumB_glm), confint(benzonumB_glm)))
+  
+benzonumC_glm = glm(success ~ benzonum, dataC, family = "binomial")
+summary(benzonumC_glm)
+exp(cbind(OR = coef(benzonumC_glm), confint(benzonumC_glm)))
+
+benzonum_odds <- data.frame(
+  label = c("1", "0.40(0.21, 0.76)", 
+            "1", "0.79(0.39, 1.58)",
+            "1", "0.90(0.43, 1.85)"),
+  drug   = c("A", "A",  "B", "B", "C", "C"),
+  x     = c("1~2", "3~7","1~2", "3~7","1~2", "3~7"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,6)
+  
+)
+
+benzonumP + geom_text(
+  data    = benzonum_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+```
+
+
+## Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/ (n = 337)
+
+
+```{r}
+data_timeperc = data %>% 
+  filter(!is.na(time)) %>% 
+  group_by(drug,time, success) %>% 
+  summarise(n = n() ) %>% 
+  mutate(pct = round(n / sum(n), 3)) 
+
+timeP = data %>%
+  filter(!is.na(time)) %>% 
+  ggplot(aes(x = time, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+            position="fill", 
+            vjust = 1)   +
+  geom_text(data = data_timeperc, stat = "identity", 
+            aes(label = paste0(pct*100, "%"), y = pct),
+            vjust = 2, 
+            position = position_fill()) +
+  facet_grid(.~drug)
+
+timeA_glm = glm(success ~ time, dataA, family = "binomial")
+summary(timeA_glm)
+exp(cbind(OR = coef(timeA_glm), confint(timeA_glm)))
+
+timeB_glm = glm(success ~ time, dataB, family = "binomial")
+summary(timeB_glm)
+exp(cbind(OR = coef(timeB_glm), confint(timeB_glm)))
+  
+timeC_glm = glm(success ~ time, dataC, family = "binomial")
+summary(timeC_glm)
+exp(cbind(OR = coef(timeC_glm), confint(timeC_glm)))
+
+time_odds <- data.frame(
+  label = c("1", "1.45(0.44, 4,61)", "0.60(0.18, 1.89)", "1.04(0.34, 3.06)",
+            "1", "3.2(0.89, 12.5)" ,"1.22(0.33, 4.88)" , "1.96(0.57, 7.31)",
+            "1", "0.82(0.27, 2.41)", "1.02(0.45, 3.47)", "1.40(0.45, 4.29)"),
+  drug   = c("A", "A", "A", "A", "B", "B", "B","B", "C", "C", "C", "C"),
+  x     = c("[0,15)", "[15,30)", "[30,45)","[45,)", "[0,15)", "[15,30)", "[30,45)","[45,)","[0,15)", "[15,30)", "[30,45)","[45,)"),
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+  success = rep(1,12)
+)
+
+timeP + geom_text(
+  data    = time_odds,
+  mapping = aes(x = x, y = y, label = label)
+)
+
+```
+
+
+
+# variable selection
+
