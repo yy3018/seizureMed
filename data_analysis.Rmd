@@ -526,8 +526,19 @@ In this case, I exclude variables related to Benzodiazepine prior to ED visit an
 ```{r}
 data_vs2 = data %>% dplyr::select(success, drug, age_group,gender,provoked,homemed,se_group,benzonum) %>% drop_na()
 
+data_vs2A = data_vs2 %>% filter(drug == "A") %>% dplyr::select(-drug)
 data_vs2B = data_vs2 %>% filter(drug == "B") %>% dplyr::select(-drug)
 data_vs2C = data_vs2 %>% filter(drug == "C") %>% dplyr::select(-drug)
+
+# drugA
+full2A = glm(success ~., data = data_vs2A, family = "binomial")
+for2A = stepAIC(full2A, direction = "forward")
+back2A = stepAIC(full2A, direction = "backward")
+both2A = stepAIC(full2A, direction = "both")
+
+summary(for2A) # keep all variables
+summary(back2A) # formula = success ~ provoked + se_group
+summary(both2A) # formula = success ~ provoked + se_group
 
 # drugB
 full2B = glm(success ~., data = data_vs2B, family = "binomial")
@@ -562,3 +573,10 @@ For drug C, both backward selection and stepwise regression generate formula as
 
 $$success \sim homemed$$
 *Provoked is the last removed variable*
+
+```{r}
+pred = glm(success ~ drug+ age_group+gender+provoked+homemed+se_group+benzonum+drug*age_group
+    +drug*se_group+drug*benzonum+drug*homemed + drug*provoked, data = data_vs2, family = "binomial")
+summary(pred)
+```
+

@@ -30,28 +30,40 @@ Pre = read_csv("E:/CU/RA/data/ESETT/CSV Datasets_form123.csv") %>% select(zSubje
 
 homemed = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
   janitor::clean_names() %>% 
-  select(z_subject_id, home_med_1, home_med_2, home_med_3, home_med_4, home_med_5, home_med_6) %>% 
-  rename(id = z_subject_id) %>% 
-  pivot_longer(home_med_1:home_med_6, names_to = "med", values_to = "medname") %>% 
-  mutate(medname = as.numeric(medname), id = as.numeric(id)) %>% drop_na() %>% 
-  group_by(id) %>% 
-  summarise(homemed_num = n())
-        
-homemed_s = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
-  janitor::clean_names() %>% 
   select(z_subject_id, home_meds_flat_med_name_1, home_meds_flat_med_name_2, home_meds_flat_med_name_3, home_meds_flat_med_name_4, home_meds_flat_med_name_5, home_meds_flat_med_name_6) %>% 
   rename(id = z_subject_id) %>% 
-  pivot_longer(home_meds_flat_med_name_1:home_meds_flat_med_name_6, names_to = "med", values_to = "medname") %>% 
-  mutate( id = as.numeric(id)) %>% drop_na() %>% 
-  filter(medname != "NULL") %>% 
-  mutate(medname = as.factor(medname))
+  pivot_longer(home_meds_flat_med_name_1:home_meds_flat_med_name_6, names_to = "med", values_to = "medname", names_prefix = "home_meds_flat_med_name_") %>% 
+  mutate(medname = as.character(medname), id = as.numeric(id)) %>% 
+  filter(medname != "NULL") 
 
-homemed_s_ = homemed_s %>% 
+homemed_num = homemed %>% 
+  group_by(id) %>% 
+  summarise(homemed_num = n())
+
+# A = levetiracetam
+# 
+# B = Fosphenytoin
+# 
+# C = Valproate
+
+homemed_match = homemed %>%
+  mutate(matchA = case_when(medname == "Levetiracetam" ~ 1,
+                            medname != "Levetiracetam" ~ 0),
+         matchC = case_when(medname == "Valproate" ~ 1,
+                            medname != "Valproate" ~ 0)) %>% 
+  group_by(id) %>% summarise(sumA = sum(matchA), sumC = sum(matchC)) %>% 
+  mutate(idmatchA = case_when(sumA > 0 ~ 1,
+                              sumA == 0 ~ 0),
+         idmatchC = case_when(sumC > 0 ~ 1,
+                              sumC == 0 ~ 0)) 
+
+
+homemed_s = homemed %>% 
   filter(medname != "Aspirin" & medname != "Naproxen" & medname != "Heparin"& medname != "Ibuprofen")#Aspirin Naproxen Heparin Ibuprofen 
 
-length(unique(homemed_s_$id)) #333
+length(unique(homemed_s$id)) #333
 
-home_seizure_med = data.frame(id = unique(homemed_s_$id), home_seizure_med = 1)
+home_seizure_med = data.frame(id = unique(homemed_s$id), home_seizure_med = 1)
 
 
 benzo = read_csv("E:/CU/RA/data/ESETT/Form 506MC.csv") %>% 
@@ -65,6 +77,7 @@ benzo$time_before_drug[is.na(benzo$time_before_drug)] = 0
 
 benzo_dose = benzo %>% group_by(id) %>% summarise(dose_benzo = n(),
                                                   time_benzo = max(time_before_drug))
+
 
 ```
 
@@ -88,8 +101,9 @@ data = data %>%
          se = as.numeric(se),
          itt = as.numeric(itt)) 
 
+
 data = data %>% 
-  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% 
+  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_num) %>% full_join(homemed_match) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% 
   mutate(age_group = case_when(age < 18 ~ "child",
                      age >= 18 & age < 60 ~ "adult",
                      age >= 60 ~ "senior"), 
@@ -102,12 +116,11 @@ data = data %>%
                               cause == "Unprovoked" ~ "No")) %>%
   dplyr::select( -agedist)
 
-data$homemed_num[is.na(data$homemed_num)] = 0
-data$home_seizure_med[is.na(data$home_seizure_med)] = 0
-
-
 data = data %>% filter(!is.na(success) & itt == 1 & final_dx != "Non-epileptic spell") 
 
+# ???
+# data$homemed_num[is.na(data$homemed_num)] = 0
+# data$home_seizure_med[is.na(data$home_seizure_med)] = 0
 ```
 
 
