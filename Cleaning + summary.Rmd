@@ -119,8 +119,10 @@ data = data %>%
 data = data %>% filter(!is.na(success) & itt == 1 & final_dx != "Non-epileptic spell") 
 
 # ???
-# data$homemed_num[is.na(data$homemed_num)] = 0
-# data$home_seizure_med[is.na(data$home_seizure_med)] = 0
+data$homemed_num[is.na(data$homemed_num)] = 0
+data$homemed_num[is.na(data$idmatchA)] = 0
+data$homemed_num[is.na(data$idmatchC)] = 0
+data$home_seizure_med[is.na(data$home_seizure_med)] = 0
 ```
 
 
@@ -155,295 +157,93 @@ There are 421 patients after removing 40 non-epileptic (final_dx = "Non-epilepti
 ## Tables 1 include 421 patients by treatment
 
 ```{r}
-sum = list(
+
+sum <- list(
   "Age" = 
     list(
-      "mean (sd)" = ~  mean_sd(data$age),
-      "Range" = ~ paste(min(data$age),max(data$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$age)),"(",round(sum(is.na(data$age)) / length(data$id) *100,2), "%)")
-      ),
+      "mean (sd)" = ~  mean_sd( age),
+      "Range" = ~ paste(min( age),max( age), sep = "-"),
+      "NA" = ~ paste0(sum(is.na( age)),"(",round(sum(is.na( age)) / length( id) *100,2), "%)")
+    ),
   "Age Group" = 
     list(
-      "0-17y" = ~ qwraps2::n_perc(data$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(data$age >= 18 & data$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(data$age>60)
+      "0-17y" = ~ qwraps2::n_perc( age<= 17),
+      "18y - 60 y" = ~ qwraps2::n_perc( age >= 18 &  age <= 60),
+      ">60 y" = ~ qwraps2::n_perc( age>60)
     ),
   "Gender" = 
     list(
-      "Female" = ~ qwraps2::n_perc(data$Male == 0),
-      "Male" = ~ qwraps2::n_perc(data$Male == 1)),
+      "Female" = ~ qwraps2::n_perc( Male == 0),
+      "Male" = ~ qwraps2::n_perc( Male == 1)),
   "Race" = 
     list(
-      "Black" = ~ qwraps2::n_perc(data$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(data$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(data$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(data$race != "White" & data$race != "Black/African American" & data$race != "Asian" & data$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(data$race == "Unknown")
+      "Black" = ~ qwraps2::n_perc( race == "Black/African American"),
+      "White" = ~ qwraps2::n_perc( race == "White"),
+      "Asian" = ~ qwraps2::n_perc( race == "Asian"),
+      "Other" = ~ qwraps2::n_perc( race != "White" &  race != "Black/African American" &  race != "Asian" &  race != "Unknown" ),
+      "Unknown" = ~ qwraps2::n_perc( race == "Unknown")
     ),
   "Ethnicity" = 
     list(
-      "Hispanic" = ~ qwraps2::n_perc(data$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(data$hispanic == "0")
+      "Hispanic" = ~ qwraps2::n_perc( hispanic == "1"),
+      "Non-Hispanic" = ~ qwraps2::n_perc( hispanic == "0")
     ),
   "Home antiepileptic medications" = 
     list(
-      "0" = ~  qwraps2::n_perc(data$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(data$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(data$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(data$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(data$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(data$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(data$homemed_num == "6")
+      "0" = ~  qwraps2::n_perc( homemed_num == "0"),
+      "1" = ~  qwraps2::n_perc( homemed_num == "1"),
+      "2" = ~  qwraps2::n_perc( homemed_num == "2"),
+      "3" = ~  qwraps2::n_perc( homemed_num == "3"),
+      "4" = ~  qwraps2::n_perc( homemed_num == "4"),
+      "5" = ~  qwraps2::n_perc( homemed_num == "5"),
+      "6" = ~  qwraps2::n_perc( homemed_num == "6")
     ),
   "History of epilepsy" = 
     list(
-      "Yes" = ~ qwraps2::n_perc(data$pre[!is.na(data$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(data$pre[!is.na(data$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$pre)),"(",round(sum(is.na(data$pre)) / length(data$id) *100,2), "%)")
+      "Yes" = ~ qwraps2::n_perc( pre[!is.na( pre)] == 1),
+      "No" = ~  qwraps2::n_perc( pre[!is.na( pre)] == 0),
+      "NA" = ~ paste0(sum(is.na( pre)),"(",round(sum(is.na( pre)) / length( id) *100,2), "%)")
     ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(data$se[!is.na(data$se)]),
-      "Range" = ~ paste(min(data$se[!is.na(data$se)]),max(data$se[!is.na(data$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$se)),"(",round(sum(is.na(data$se)) / length(data$id) *100,2), "%)")
+  "Duration of seizure" = list(
+    "mean (sd)" = ~  mean_sd( se[!is.na( se)]),
+    "Range" = ~ paste(min( se[!is.na( se)]),max( se[!is.na( se)]), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( se)),"(",round(sum(is.na( se)) / length( id) *100,2), "%)")
   ),
   "Benzodiazepines given before ED arrival" = list(
     
-      "Yes" = ~ qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(data$benzos_pre_ed[!is.na(data$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(data$benzos_pre_ed)),"(",round(sum(is.na(data$benzos_pre_ed)) / length(data$id) *100,2), "%)")
+    "Yes" = ~ qwraps2::n_perc( benzos_pre_ed[!is.na( benzos_pre_ed)] == 1),
+    "No" = ~  qwraps2::n_perc( benzos_pre_ed[!is.na( benzos_pre_ed)] == 0),
+    "NA" = ~ paste0(sum(is.na( benzos_pre_ed)),"(",round(sum(is.na( benzos_pre_ed)) / length( id) *100,2), "%)")
   ),
   "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(data$dose_benzo),
-      "Range" = ~ paste(min(data$dose_benzo),max(data$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$dose_benzo)),"(",round(sum(is.na(data$dose_benzo)) / length(data$id) *100,2), "%)")
+    "mean (sd)" = ~  mean_sd( dose_benzo),
+    "Range" = ~ paste(min( dose_benzo),max( dose_benzo), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( dose_benzo)),"(",round(sum(is.na( dose_benzo)) / length( id) *100,2), "%)"),
+    
+    "0" = ~  qwraps2::n_perc( dose_benzo == "0"),
+    "1" = ~  qwraps2::n_perc( dose_benzo == "1"),
+    "2" = ~  qwraps2::n_perc( dose_benzo == "2"),
+    "3" = ~  qwraps2::n_perc( dose_benzo == "3"),
+    "4" = ~  qwraps2::n_perc( dose_benzo == "4"),
+    "5" = ~  qwraps2::n_perc( dose_benzo == "5"),
+    "6" = ~  qwraps2::n_perc( dose_benzo == "6"),
+    "7" = ~  qwraps2::n_perc( dose_benzo == "7")
   ),
   "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(data$time_benzo),
-      "Range" = ~ paste(min(data$time_benzo),max(data$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(data$time_benzo)),"(",round(sum(is.na(data$time_benzo)) / length(data$id) *100,2), "%)")
+    "mean (sd)" = ~  mean_sd( time_benzo),
+    "Range" = ~ paste(min( time_benzo),max( time_benzo), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( time_benzo)),"(",round(sum(is.na( time_benzo)) / length( id) *100,2), "%)")
     
   )
 )
 
+drug_sep = summary_table(group_by(data, drug), sum)
+whole = summary_table(data, sum)
 
-whole = summary_table(data,sum)
+cbind(whole, drug_sep)
 
-A = data %>% filter(drug == "A")
-B = data %>% filter(drug == "B")
-C = data %>% filter(drug == "C")
-
-sumA = list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(A$age),
-      "Range" = ~ paste(min(A$age),max(A$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$age)),"(",round(sum(is.na(A$age)) / length(A$id) *100,2), "%)")),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(A$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(A$age >= 18 & A$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(A$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(A$Male == 0),
-      "Male" = ~ qwraps2::n_perc(A$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(A$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(A$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(A$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(A$race != "White" & A$race != "Black/African American" & A$race != "Asian" & A$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(A$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(A$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(A$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-      "0" = ~  qwraps2::n_perc(A$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(A$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(A$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(A$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(A$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(A$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(A$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(A$pre[!is.na(A$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(A$pre[!is.na(A$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(A$pre)),"(",round(sum(is.na(A$pre)) / length(A$id) *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(A$se[!is.na(A$se)]),
-      "Range" = ~ paste(min(A$se[!is.na(A$se)]),max(A$se[!is.na(A$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$se)),"(",round(sum(is.na(A$se)) / length(A$id) *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(A$benzos_pre_ed[!is.na(A$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(A$benzos_pre_ed[!is.na(A$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(A$benzos_pre_ed)),"(",round(sum(is.na(A$benzos_pre_ed)) / length(A$id) *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(A$dose_benzo),
-      "Range" = ~ paste(min(A$dose_benzo),max(A$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$dose_benzo)),"(",round(sum(is.na(A$dose_benzo)) / length(A$id) *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(A$time_benzo),
-      "Range" = ~ paste(min(A$time_benzo),max(A$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(A$time_benzo)),"(",round(sum(is.na(A$time_benzo)) / length(A$id) *100,2), "%)")
-    
-  )
-)
-
-sumB = list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(B$age),
-      "Range" = ~ paste(min(B$age),max(B$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$age)),"(",round(sum(is.na(B$age)) / length(B$id) *100,2), "%)")),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(B$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(B$age >= 18 & B$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(B$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(B$Male == 0),
-      "Male" = ~ qwraps2::n_perc(B$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(B$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(B$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(B$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(B$race != "White" & B$race != "Black/African American" & B$race != "Asian" & B$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(B$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(B$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(B$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-      "0" = ~  qwraps2::n_perc(B$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(B$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(B$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(B$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(B$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(B$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(B$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(B$pre[!is.na(B$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(B$pre[!is.na(B$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(B$pre)),"(",round(sum(is.na(B$pre)) / length(B$id) *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(B$se[!is.na(B$se)]),
-      "Range" = ~ paste(min(B$se[!is.na(B$se)]),max(B$se[!is.na(B$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$se)),"(",round(sum(is.na(B$se)) / length(B$id) *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(B$benzos_pre_ed[!is.na(B$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(B$benzos_pre_ed[!is.na(B$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(B$benzos_pre_ed)),"(",round(sum(is.na(B$benzos_pre_ed)) / length(B$id) *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(B$dose_benzo),
-      "Range" = ~ paste(min(B$dose_benzo),max(B$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$dose_benzo)),"(",round(sum(is.na(B$dose_benzo)) / length(B$id) *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(B$time_benzo),
-      "Range" = ~ paste(min(B$time_benzo),max(B$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(B$time_benzo)),"(",round(sum(is.na(B$time_benzo)) / length(B$id) *100,2), "%)")
-    
-  )
-)
-
-sumC = list(
-  "Age" = 
-    list(
-      "mean (sd)" = ~  mean_sd(C$age),
-      "Range" = ~ paste(min(C$age),max(C$age), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$age)),"(",round(sum(is.na(C$age)) / length(C$id) *100,2), "%)")),
-  "Age Group" = 
-    list(
-      "0-17y" = ~ qwraps2::n_perc(C$age<= 17),
-      "18y - 60 y" = ~ qwraps2::n_perc(C$age >= 18 & C$age <= 60),
-      ">60 y" = ~ qwraps2::n_perc(C$age>60)
-    ),
-  "Gender" = 
-    list(
-      "Female" = ~ qwraps2::n_perc(C$Male == 0),
-      "Male" = ~ qwraps2::n_perc(C$Male == 1)),
-  "Race" = 
-    list(
-      "Black" = ~ qwraps2::n_perc(C$race == "Black/African American"),
-      "White" = ~ qwraps2::n_perc(C$race == "White"),
-      "Asian" = ~ qwraps2::n_perc(C$race == "Asian"),
-      "Other" = ~ qwraps2::n_perc(C$race != "White" & C$race != "Black/African American" & C$race != "Asian" & C$race != "Unknown" ),
-      "Unknown" = ~ qwraps2::n_perc(C$race == "Unknown")
-    ),
-  "Ethnicity" = 
-    list(
-      "Hispanic" = ~ qwraps2::n_perc(C$hispanic == "1"),
-      "Non-Hispanic" = ~ qwraps2::n_perc(C$hispanic == "0")
-    ),
-  "Home antiepileptic medications" = 
-    list(
-      "0" = ~  qwraps2::n_perc(C$homemed_num == "0"),
-      "1" = ~  qwraps2::n_perc(C$homemed_num == "1"),
-      "2" = ~  qwraps2::n_perc(C$homemed_num == "2"),
-      "3" = ~  qwraps2::n_perc(C$homemed_num == "3"),
-      "4" = ~  qwraps2::n_perc(C$homemed_num == "4"),
-      "5" = ~  qwraps2::n_perc(C$homemed_num == "5"),
-      "6" = ~  qwraps2::n_perc(C$homemed_num == "6")
-    ),
-  "History of epilepsy" = 
-    list(
-      "Yes" = ~ qwraps2::n_perc(C$pre[!is.na(C$pre)] == 1),
-      "No" = ~  qwraps2::n_perc(C$pre[!is.na(C$pre)] == 0),
-      "NA" = ~ paste0(sum(is.na(C$pre)),"(",round(sum(is.na(C$pre)) / length(C$id) *100,2), "%)")
-    ),
-  "Median duration of seizure" = list(
-      "mean (sd)" = ~  mean_sd(C$se[!is.na(C$se)]),
-      "Range" = ~ paste(min(C$se[!is.na(C$se)]),max(C$se[!is.na(C$se)]), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$se)),"(",round(sum(is.na(C$se)) / length(C$id) *100,2), "%)")
-  ),
-  "Benzodiazepines given before ED arrival" = list(
-    
-      "Yes" = ~ qwraps2::n_perc(C$benzos_pre_ed[!is.na(C$benzos_pre_ed)] == 1),
-      "No" = ~  qwraps2::n_perc(C$benzos_pre_ed[!is.na(C$benzos_pre_ed)] == 0),
-      "NA" = ~ paste0(sum(is.na(C$benzos_pre_ed)),"(",round(sum(is.na(C$benzos_pre_ed)) / length(C$id) *100,2), "%)")
-  ),
-  "Number of benzo doses" = list(
-      "mean (sd)" = ~  mean_sd(C$dose_benzo),
-      "Range" = ~ paste(min(C$dose_benzo),max(C$dose_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$dose_benzo)),"(",round(sum(is.na(C$dose_benzo)) / length(C$id) *100,2), "%)")
-  ),
-  "Interval between 1st dose of benzo and administration of the study drug" = list(
-      "mean (sd)" = ~  mean_sd(C$time_benzo),
-      "Range" = ~ paste(min(C$time_benzo),max(C$time_benzo), sep = "-"),
-      "NA" = ~ paste0(sum(is.na(C$time_benzo)),"(",round(sum(is.na(C$time_benzo)) / length(C$id) *100,2), "%)")
-    
-  )
-)
-
-tableA = summary_table(A,sumA)
-tableB = summary_table(B,sumB)
-tableC = summary_table(C,sumC)
-cbind(whole, tableA,tableB,tableC)
 ```
+
 
 |                                                                            |data (N = 421)       |A (N = 159)          |B (N = 131)          |C (N = 131)          |
 |:---------------------------------------------------------------------------|:--------------------|:--------------------|:--------------------|:--------------------|
@@ -479,7 +279,7 @@ cbind(whole, tableA,tableB,tableC)
 |&nbsp;&nbsp; Yes                                                            |305 (72.79%)         |112 (70.89%)         |98 (75.38%)          |95 (72.52%)          |
 |&nbsp;&nbsp; No                                                             |114 (27.21%)         |46 (29.11%)          |32 (24.62%)          |36 (27.48%)          |
 |&nbsp;&nbsp; NA                                                             |2(0.48%)             |1(0.63%)             |1(0.76%)             |0(0%)                |
-|**Median duration of seizure**                                              |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|**Duration of seizure**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
 |&nbsp;&nbsp; mean (sd)                                                      |77.47 &plusmn; 60.07 |73.72 &plusmn; 46.88 |80.96 &plusmn; 72.33 |78.57 &plusmn; 61.25 |
 |&nbsp;&nbsp; Range                                                          |6-620                |6-305                |10-620               |10-377               |
 |&nbsp;&nbsp; NA                                                             |29(6.89%)            |10(6.29%)            |10(7.63%)            |9(6.87%)             |
@@ -491,11 +291,18 @@ cbind(whole, tableA,tableB,tableC)
 |&nbsp;&nbsp; mean (sd)                                                      |2.48 &plusmn; 0.94   |2.56 &plusmn; 0.97   |2.47 &plusmn; 0.89   |2.39 &plusmn; 0.97   |
 |&nbsp;&nbsp; Range                                                          |1-7                  |1-7                  |1-5                  |1-6                  |
 |&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
+|&nbsp;&nbsp; 0                                                              |0 (0.00%)            |0 (0.00%)            |0 (0.00%)            |0 (0.00%)            |
+|&nbsp;&nbsp; 1                                                              |49 (11.64%)          |16 (10.06%)          |14 (10.69%)          |19 (14.50%)          |
+|&nbsp;&nbsp; 2                                                              |188 (44.66%)         |65 (40.88%)          |60 (45.80%)          |63 (48.09%)          |
+|&nbsp;&nbsp; 3                                                              |130 (30.88%)         |58 (36.48%)          |40 (30.53%)          |32 (24.43%)          |
+|&nbsp;&nbsp; 4                                                              |45 (10.69%)          |16 (10.06%)          |15 (11.45%)          |14 (10.69%)          |
+|&nbsp;&nbsp; 5                                                              |6 (1.43%)            |2 (1.26%)            |2 (1.53%)            |2 (1.53%)            |
+|&nbsp;&nbsp; 6                                                              |2 (0.48%)            |1 (0.63%)            |0 (0.00%)            |1 (0.76%)            |
+|&nbsp;&nbsp; 7                                                              |1 (0.24%)            |1 (0.63%)            |0 (0.00%)            |0 (0.00%)            |
 |**Interval between 1st dose of benzo and administration of the study drug** |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
 |&nbsp;&nbsp; mean (sd)                                                      |49.59 &plusmn; 63.11 |49.99 &plusmn; 45.72 |51.98 &plusmn; 80.04 |46.70 &plusmn; 62.51 |
 |&nbsp;&nbsp; Range                                                          |5-857                |6-335                |7-857                |5-557                |
 |&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
-
 
 ## Table 2 Seizure types
 
