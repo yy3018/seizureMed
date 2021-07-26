@@ -54,16 +54,17 @@ ageP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_ageperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   
+  facet_grid(.~drug) + 
   labs(x = "Age Group", y = "Proportion") + 
-  theme(axis.title.x = element_text(size=20,face = "bold"),
+  theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),
+        axis.title.x = element_text(size=20,face = "bold"),
         axis.text.x  = element_text(size = 18),
         axis.title.y = element_text(size=20,face = "bold"),
         axis.text.y  = element_text(size = 15) ) + 
@@ -83,7 +84,7 @@ summary(ageC_glm)
 exp(cbind(OR = coef(ageC_glm), confint(ageC_glm)))
 
 age_odds <- data.frame(
-  label = c("1", "1.64(0.80, 3.39)", "2.91(1.20, 7.29)",
+  label = c("OR(95%CI)  1        ", "1.64(0.80, 3.39)", "2.91(1.20, 7.29)",
             "1","1.02(0.46, 2.25)" ,"1.37(0.53, 3.57)" , 
             "1", "1.46(0.66, 3.26)" , "2.21(0.86, 5.91)" ),
   drug   = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
@@ -91,6 +92,7 @@ age_odds <- data.frame(
   y     = c(-0.03, -0.03, -0.03,-0.03, -0.03, -0.03,-0.03, -0.03, -0.03),
   Failure = rep("Failure",9)
 )
+
 
 ageP + geom_text(
   data    = age_odds,
@@ -114,16 +116,16 @@ genderP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_genderperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
   facet_grid(.~drug) +   
   labs(x = "Gender Group", y = "Proportion") +    
-  theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 genderA_glm = glm(Failure ~ gender, dataA, family = "binomial")
 summary(genderA_glm)
@@ -138,7 +140,7 @@ summary(genderC_glm)
 exp(cbind(OR = coef(genderC_glm), confint(genderC_glm)))
 
 gender_odds <- data.frame(
-  label = c("1", "1.07(0.57, 2.03)", 
+  label = c("OR(95%CI)  1        ", "1.07(0.57, 2.03)", 
             "1","1.11(0.55, 2.26)" ,
             "1", "0.84(0.42, 1.71)"),
   drug   = c("A", "A",  "B", "B", "C", "C"),
@@ -170,14 +172,14 @@ provokedP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_provokedperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   labs(x = "Provoked", y = "Proportion") +    theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  facet_grid(.~drug) +   labs(x = "Provoked", y = "Proportion") +    theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 provokedA_glm = glm(Failure ~ provoked, dataA, family = "binomial")
 summary(provokedA_glm)
@@ -192,7 +194,7 @@ summary(provokedC_glm)
 exp(cbind(OR = coef(provokedC_glm), confint(provokedC_glm)))
 
 provoked_odds <- data.frame(
-  label = c("1", "0.98(0.51, 1.91)", 
+  label = c("OR(95%CI)  1        ", "0.98(0.51, 1.91)", 
             "1", "0.51(0.25, 1.04)",
             "1", "1.89(0.87, 4.29)"),
   drug   = c("A", "A",  "B", "B", "C", "C"),
@@ -225,14 +227,14 @@ homemedP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_homemedperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   labs(x = "Home Antiepileptic Medication", y = "Proportion") +    theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  facet_grid(.~drug) +   labs(x = "Home Antiepileptic Medication", y = "Proportion") +    theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 homemedA_glm = glm(Failure ~ homemed, dataA, family = "binomial")
 summary(homemedA_glm)
@@ -247,7 +249,7 @@ summary(homemedC_glm)
 exp(cbind(OR = coef(homemedC_glm), confint(homemedC_glm)))
 
 homemed_odds <- data.frame(
-  label = c("1", "1.02(0.52, 2.02)", 
+  label = c("OR(95%CI)  1        ", "1.02(0.52, 2.02)", 
             "1", "1.06(0.50, 2.29)",
             "1", "0.47(0.22, 0.99)"),
   drug   = c("A", "A",  "B", "B", "C", "C"),
@@ -281,14 +283,14 @@ se_groupP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_se_groupperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   labs(x = "Seizure Duration", y = "Proportion") +    theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  facet_grid(.~drug) +   labs(x = "Seizure Duration", y = "Proportion") +    theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 se_groupA_glm = glm(Failure ~ se_group, dataA, family = "binomial")
 summary(se_groupA_glm)
@@ -303,7 +305,7 @@ summary(se_groupC_glm)
 exp(cbind(OR = coef(se_groupC_glm), confint(se_groupC_glm)))
 
 se_group_odds <- data.frame(
-  label = c("1", "1.15(0.37, 3.85)", "1.13(0,38, 3,60)",
+  label = c("OR(95%CI)  1        ", "1.15(0.37, 3.85)", "1.13(0,38, 3,60)",
             "1","6.00(1.38, 42.09)" ,"4.85(1.16, 33.17)" , 
             "1", "1.09(0.33, 3.84)", "0.96(0.31, 3.16)" ),
   drug   = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
@@ -336,14 +338,14 @@ benzoP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_benzoperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   labs(x = "Benzodiazepine Prior to ED Visit", y = "Proportion") +    theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  facet_grid(.~drug) +   labs(x = "Benzodiazepine Prior to ED Visit", y = "Proportion") +    theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 benzoA_glm = glm(Failure ~ benzo, dataA, family = "binomial")
 summary(benzoA_glm)
@@ -358,7 +360,7 @@ summary(benzoC_glm)
 exp(cbind(OR = coef(benzoC_glm), confint(benzoC_glm)))
 
 benzo_odds <- data.frame(
-  label = c("1", "0.74(0.36, 1.50)", 
+  label = c("OR(95%CI)  1        ", "0.74(0.36, 1.50)", 
             "1", "1.08(0.50, 2.33)",
             "1", "0.92(0.43, 1.97)"),
   drug   = c("A", "A",  "B", "B", "C", "C"),
@@ -391,14 +393,14 @@ benzonumP = data %>%
   geom_text(stat = "count", 
             aes(label = after_stat(count)),
             position="fill", 
-            vjust = 1,
+            vjust = 1.5,
             size = 6)   +
   geom_text(data = data_benzonumperc, stat = "identity", 
             aes(label = paste0(pct*100, "%"), y = pct),
-            vjust = 2, 
+            vjust = 3, 
             position = position_fill(),
             size = 6) +
-  facet_grid(.~drug) +   labs(x = "Number of Benzodiazepine Doses", y = "Proportion") +    theme(axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
+  facet_grid(.~drug) +   labs(x = "Number of Benzodiazepine Doses", y = "Proportion") +    theme(legend.text = element_text(size=20), legend.title = element_blank(),legend.position="top",strip.text.x = element_text(size = 15),axis.title.x = element_text(size=20,face = "bold"),         axis.text.x  = element_text(size = 18),         axis.title.y = element_text(size=20,face = "bold"),         axis.text.y  = element_text(size = 15) )
 
 benzonumA_glm = glm(Failure ~ benzonum, dataA, family = "binomial")
 summary(benzonumA_glm)
@@ -413,7 +415,7 @@ summary(benzonumC_glm)
 exp(cbind(OR = coef(benzonumC_glm), confint(benzonumC_glm)))
 
 benzonum_odds <- data.frame(
-  label = c("1", "2.48(1.31, 4.79)", 
+  label = c("OR(95%CI)  1        ", "2.48(1.31, 4.79)", 
             "1", "1.26(0.63, 2.54)",
             "1", "1.11(0.54, 2.28)"),
   drug   = c("A", "A",  "B", "B", "C", "C"),
@@ -431,76 +433,97 @@ benzonumP + geom_text(
 ```
 
 
-## Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/ (n = 337)
+## ~~Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/ (n = 337)~~
 
-Delete
-
-# Variable selection 
-
-## include 322 patients after remove NA in age_group, gender, provoked, homemed, se_group, benzo, benzonum,time
 
 ```{r}
-library(MASS)
-data_vs1 = data %>% dplyr::select(Failure, drug, age_group,gender,provoked,homemed,se_group,benzo,benzonum,time) %>% drop_na()
+data_timeperc = data %>% 
+ 
+  filter(!is.na(time)) %>% 
 
-data_vs1A = data_vs1 %>% filter(drug == "A") %>% dplyr::select(-drug)
-data_vs1B = data_vs1 %>% filter(drug == "B") %>% dplyr::select(-drug)
-data_vs1C = data_vs1 %>% filter(drug == "C") %>% dplyr::select(-drug)
-
-# drugA
-full1A = glm(Failure ~., data = data_vs1A, family = "binomial")
-for1A = stepAIC(full1A, direction = "forward")
-back1A = stepAIC(full1A, direction = "backward")
-both1A = stepAIC(full1A, direction = "both")
-
-summary(for1A) # keep all variables
-summary(back1A) # formula = Failure ~ age_group + benzo + benzonum
-summary(both1A) # formula = Failure ~ age_group + benzo + benzonum
-
-
-# drugB
-full1B = glm(Failure ~., data = data_vs1B, family = "binomial")
-for1B = stepAIC(full1B, direction = "forward")
-back1B = stepAIC(full1B, direction = "backward")
-both1B = stepAIC(full1B, direction = "both")
-
-summary(for1B) # keep all variables
-summary(back1B) # formula = Failure ~ se_group
-summary(both1B) # formula = Failure ~ se_group
-# provoked is the last removed variable
-
-
-# drugC
-full1C = glm(Failure ~., data = data_vs1C, family = "binomial")
-for1C = stepAIC(full1C, direction = "forward")
-back1C = stepAIC(full1C, direction = "backward")
-both1C = stepAIC(full1C, direction = "both")
-
-summary(for1C) # keep all variables
-summary(back1C) # formula = Failure ~ homemed
-summary(both1C) # formula = Failure ~ homemed
-# provoked is the last removed variable
+  group_by(drug,time, success) %>% 
+ 
+  summarise(n = n() ) %>% 
+ 
+  mutate(pct = round(n / sum(n), 3)) 
+ 
+timeP = data %>%
+ 
+  filter(!is.na(time)) %>% 
+  ggplot(aes(x = time, fill = factor(success))) +
+  geom_bar(stat = "count",position="fill")+
+  geom_text(stat = "count", 
+            aes(label = after_stat(count)),
+ 
+            position="fill", 
+ 
+            vjust = 1.5)   +
+ 
+  geom_text(data = data_timeperc, stat = "identity", 
+ 
+            aes(label = paste0(pct*100, "%"), y = pct),
+ 
+            vjust = 3, 
+ 
+            position = position_fill()) +
+ 
+  facet_grid(.~drug)
+ 
+timeA_glm = glm(success ~ time, dataA, family = "binomial")
+ 
+summary(timeA_glm)
+ 
+exp(cbind(OR = coef(timeA_glm), confint(timeA_glm)))
+ 
+timeB_glm = glm(success ~ time, dataB, family = "binomial")
+ 
+summary(timeB_glm)
+ 
+exp(cbind(OR = coef(timeB_glm), confint(timeB_glm)))
+ 
+timeC_glm = glm(success ~ time, dataC, family = "binomial")
+ 
+summary(timeC_glm)
+ 
+exp(cbind(OR = coef(timeC_glm), confint(timeC_glm)))
+ 
+time_odds <- data.frame(
+  label = c("OR(95%CI)  1        ", "1.45(0.44, 4,61)", "0.60(0.18, 1.89)", "1.04(0.34, 3.06)",
+            "1", "3.2(0.89, 12.5)" ,"1.22(0.33, 4.88)" , "1.96(0.57, 7.31)",
+            "1", "0.82(0.27, 2.41)", "1.02(0.45, 3.47)", "1.40(0.45, 4.29)"),
+ 
+  drug   = c("A", "A", "A", "A", "B", "B", "B","B", "C", "C", "C", "C"),
+ 
+  x     = c("[0,15)", "[15,30)", "[30,45)","[45,)", "[0,15)", "[15,30)", "[30,45)","[45,)","[0,15)", "[15,30)", "[30,45)","[45,)"),
+ 
+  y     = c(1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03,1.03, 1.03, 1.03),
+ 
+  success = rep(1,12)
+ 
+)
+ 
+timeP + geom_text(
+ 
+  data    = time_odds,
+ 
+  mapping = aes(x = x, y = y, label = label)
+ 
+)
 ```
 
-**Summary:**
+# correaltion
+
+```{r}
+corr_data = data %>% dplyr::select(Failure, age_group,gender,provoked,homemed, homemed_num, se_group, se, benzo,  benzonum,dose_benzo, time_benzo, time) %>% drop_na()
 
 
-Forward selection's tend to keep all variables in all situation.
+library(corrplot)
+x = model.matrix(Failure ~., corr_data)[, -1]
+corrplot(cor(x), method = "square", type = "full")
+cor(x)
+```
 
-For drug A, both backward selection and stepwise regression generate formula as 
-
-$$Failure \sim age + benzo + benzonum$$
-For drug B, both backward selection and stepwise regression generate formula as 
-
-$$Failure \sim se\ group$$
-*Provoked is the last removed variable*
-
-
-For drug C, both backward selection and stepwise regression generate formula as 
-
-$$Failure \sim homemed$$
-*Provoked is the last removed variable*
-
+# Variable selection 
 
 ## include 392 patients after remove NA in age_group, gender, provoked, homemed, se_group,  benzonum
 
@@ -514,38 +537,45 @@ data_vs2B = data_vs2 %>% filter(drug == "B") %>% dplyr::select(-drug)
 data_vs2C = data_vs2 %>% filter(drug == "C") %>% dplyr::select(-drug)
 
 # drugA
-full2A = glm(Failure ~., data = data_vs2A, family = "binomial")
-for2A = stepAIC(full2A, direction = "forward")
+full2A = glm(Failure ~ ., data = data_vs2A, family = "binomial")
+none2A = glm(Failure ~ 1, data = data_vs2A, family = "binomial")
+for2A = stepAIC(none2A, direction = "forward", scope=list(lower=none2A, upper=~ age_group+ gender+ provoked+ homemed+ se_group+ benzonum))
 back2A = stepAIC(full2A, direction = "backward")
 both2A = stepAIC(full2A, direction = "both")
 
-summary(for2A) # keep all variables
-summary(back2A) # formula = Failure ~ provoked + se_group
-summary(both2A) # formula = Failure ~ provoked + se_group
+summary(for2A) # formula =  Failure ~ age_group + benzonum
+summary(back2A) # formula =  Failure ~ age_group + benzonum
+summary(both2A) # formula =  Failure ~ age_group + benzonum
 
 # drugB
 full2B = glm(Failure ~., data = data_vs2B, family = "binomial")
-for2B = stepAIC(full2B, direction = "forward")
+none2B = glm(Failure ~ 1, data = data_vs2B, family = "binomial")
+for2B = stepAIC(none2B, direction = "forward", scope=list(lower=none2B, upper=~ age_group+ gender+ provoked+ homemed+ se_group+ benzonum))
 back2B = stepAIC(full2B, direction = "backward")
 both2B = stepAIC(full2B, direction = "both")
 
-summary(for2B) # keep all variables
+summary(for2B) # formula = Failure ~ provoked + se_group
 summary(back2B) # formula = Failure ~ provoked + se_group
 summary(both2B) # formula = Failure ~ provoked + se_group
 
 
 # drugC
 full2C = glm(Failure ~., data = data_vs2C, family = "binomial")
-for2C = stepAIC(full2C, direction = "forward")
+none2C = glm(Failure ~ 1, data = data_vs2C, family = "binomial")
+for2C = stepAIC(none2C, direction = "forward", scope=list(lower=none2C, upper=~ age_group+ gender+ provoked+ homemed+ se_group+ benzonum))
 back2C = stepAIC(full2C, direction = "backward")
 both2C = stepAIC(full2C, direction = "both")
 
-summary(for2C) # keep all variables
+summary(for2C) # formula = Failure ~ homemed
 summary(back2C) # formula = Failure ~ homemed
 summary(both2C) # formula = Failure ~ homemed
 # provoked is the last removed variable
 
 ```
+
+For drug A, both backward selection and stepwise regression generate formula as 
+
+$$Failure \sim age +benzonum$$
 
 For drug B, both backward selection and stepwise regression generate formula as 
 
@@ -557,6 +587,7 @@ For drug C, both backward selection and stepwise regression generate formula as
 $$Failure \sim homemed$$
 *Provoked is the last removed variable*
 
+## interaction
 ```{r}
 pred = glm(Failure ~ drug+ age_group+gender+provoked+homemed+se_group+benzonum+drug*age_group
     +drug*se_group+drug*benzonum+drug*homemed + drug*provoked, data = data_vs2, family = "binomial")
