@@ -307,141 +307,41 @@ cbind(whole, drug_sep)
 ## Table 2 Seizure types
 
 ```{r}
+
 type = list(
   "Seizure Type" = 
     list(
-      "Stroke"= ~ qwraps2::n_perc(data$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(data$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(data$cause == "CNS infection" | data$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(data$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(data$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(data$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(data$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(data$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(data$cause == "Other")
+      "Stroke"= ~ qwraps2::n_perc( cause == "Acute stroke/Hemorrhage"),
+      "Electrolyte anomalies"= ~ qwraps2::n_perc( cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
+      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc( cause == "CNS infection" |  cause == "CNS tumor\r"),
+      "Unprovoked"= ~ qwraps2::n_perc( cause == "Unprovoked"),
+      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc( cause == "Anti-epileptic drug withdrawal/non compliance"),
+      "Febrile illness"= ~ qwraps2::n_perc( cause == "Febrile illness"),
+      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc( cause == "Insufficient information to determine/idiopathic/cryptogenic"),
+      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc( cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
+      "Other"= ~ qwraps2::n_perc( cause == "Other")
     )
 )
 
-Success.A = A %>% filter(success == 1)
-Success.B = B %>% filter(success == 1)
-Success.C = C %>% filter(success == 1)
+data1 = data %>% 
+  mutate(Success = recode(success, "1" = "Success", "0" = "Failure"))
 
-Failure.A = A %>% filter(success == 0)
-Failure.B = B %>% filter(success == 0)
-Failure.C = C %>% filter(success == 0)
+drug_sep = summary_table(data1, type, by = c("Success", "drug"))
+drug_sep
 
-typesa = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Success.A$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Success.A$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Success.A$cause == "CNS infection" | Success.A$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Success.A$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Success.A$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Success.A$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Success.A$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Success.A$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Success.A$cause == "Other")
-    )
-)
-
-typesb = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Success.B$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Success.B$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Success.B$cause == "CNS infection" | Success.B$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Success.B$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Success.B$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Success.B$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Success.B$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Success.B$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Success.B$cause == "Other")
-    )
-)
-
-typesc = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Success.C$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Success.C$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Success.C$cause == "CNS infection" | Success.C$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Success.C$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Success.C$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Success.C$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Success.C$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Success.C$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Success.C$cause == "Other")
-    )
-)
-
-typefa = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Failure.A$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Failure.A$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Failure.A$cause == "CNS infection" | Failure.A$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Failure.A$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Failure.A$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Failure.A$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Failure.A$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Failure.A$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Failure.A$cause == "Other")
-    )
-)
-
-typefb = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Failure.B$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Failure.B$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Failure.B$cause == "CNS infection" | Failure.B$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Failure.B$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Failure.B$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Failure.B$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Failure.B$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Failure.B$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Failure.B$cause == "Other")
-    )
-)
-
-typefc = list(
-  "Seizure Type" = 
-    list(
-      "Stroke"= ~ qwraps2::n_perc(Failure.C$cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc(Failure.C$cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc(Failure.C$cause == "CNS infection" | Failure.C$cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc(Failure.C$cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc(Failure.C$cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc(Failure.C$cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc(Failure.C$cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc(Failure.C$cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc(Failure.C$cause == "Other")
-    )
-)
-
-saT = summary_table(Success.A,typesa)
-sbT = summary_table(Success.B,typesb)
-scT = summary_table(Success.C,typesc)
-faT = summary_table(Failure.A,typefa)
-fbT = summary_table(Failure.B,typefb)
-fcT = summary_table(Failure.C,typefc)
-
-cbind(saT,sbT,scT,faT,fbT,fcT)
 
 ```
-|                                                                          |Success.A (N = 93) |Success.B (N = 71) |Success.C (N = 77) |Failure.A (N = 66) |Failure.B (N = 60) |Failure.C (N = 54) |
+
+
+|                                                                          |Failure.A (N = 66) |Success.A (N = 93) |Failure.B (N = 60) |Success.B (N = 71) |Failure.C (N = 54) |Success.C (N = 77) |
 |:-------------------------------------------------------------------------|:------------------|:------------------|:------------------|:------------------|:------------------|:------------------|
 |**Seizure Type**                                                          |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |
-|&nbsp;&nbsp; Stroke                                                       |3 (3.23%)          |4 (5.63%)          |1 (1.30%)          |3 (4.55%)          |4 (6.67%)          |2 (3.70%)          |
-|&nbsp;&nbsp; Electrolyte anomalies                                        |2 (2.15%)          |0 (0.00%)          |0 (0.00%)          |1 (1.52%)          |2 (3.33%)          |1 (1.85%)          |
-|&nbsp;&nbsp; CNS Tumors/CNS infection                                     |1 (1.08%)          |3 (4.23%)          |0 (0.00%)          |4 (6.06%)          |2 (3.33%)          |5 (9.26%)          |
-|&nbsp;&nbsp; Unprovoked                                                   |32 (34.41%)        |22 (30.99%)        |27 (35.06%)        |23 (34.85%)        |28 (46.67%)        |12 (22.22%)        |
-|&nbsp;&nbsp; Anti-epileptic drug withdrawal/non compliance                |14 (15.05%)        |10 (14.08%)        |13 (16.88%)        |10 (15.15%)        |5 (8.33%)          |3 (5.56%)          |
-|&nbsp;&nbsp; Febrile illness                                              |22 (23.66%)        |16 (22.54%)        |20 (25.97%)        |9 (13.64%)         |8 (13.33%)         |15 (27.78%)        |
-|&nbsp;&nbsp; Insufficient information to determine/idiopathic/cryptogenic |0 (0.00%)          |2 (2.82%)          |4 (5.19%)          |7 (10.61%)         |1 (1.67%)          |4 (7.41%)          |
-|&nbsp;&nbsp; Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)  |6 (6.45%)          |3 (4.23%)          |3 (3.90%)          |5 (7.58%)          |3 (5.00%)          |5 (9.26%)          |
-|&nbsp;&nbsp; Other                                                        |13 (13.98%)        |11 (15.49%)        |9 (11.69%)         |4 (6.06%)          |7 (11.67%)         |7 (12.96%)         |
-
-
-
+|&nbsp;&nbsp; Stroke                                                       |3 (4.55%)          |3 (3.23%)          |4 (6.67%)          |4 (5.63%)          |2 (3.70%)          |1 (1.30%)          |
+|&nbsp;&nbsp; Electrolyte anomalies                                        |1 (1.52%)          |2 (2.15%)          |2 (3.33%)          |0 (0.00%)          |1 (1.85%)          |0 (0.00%)          |
+|&nbsp;&nbsp; CNS Tumors/CNS infection                                     |4 (6.06%)          |1 (1.08%)          |2 (3.33%)          |3 (4.23%)          |5 (9.26%)          |0 (0.00%)          |
+|&nbsp;&nbsp; Unprovoked                                                   |23 (34.85%)        |32 (34.41%)        |28 (46.67%)        |22 (30.99%)        |12 (22.22%)        |27 (35.06%)        |
+|&nbsp;&nbsp; Anti-epileptic drug withdrawal/non compliance                |10 (15.15%)        |14 (15.05%)        |5 (8.33%)          |10 (14.08%)        |3 (5.56%)          |13 (16.88%)        |
+|&nbsp;&nbsp; Febrile illness                                              |9 (13.64%)         |22 (23.66%)        |8 (13.33%)         |16 (22.54%)        |15 (27.78%)        |20 (25.97%)        |
+|&nbsp;&nbsp; Insufficient information to determine/idiopathic/cryptogenic |7 (10.61%)         |0 (0.00%)          |1 (1.67%)          |2 (2.82%)          |4 (7.41%)          |4 (5.19%)          |
+|&nbsp;&nbsp; Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)  |5 (7.58%)          |6 (6.45%)          |3 (5.00%)          |3 (4.23%)          |5 (9.26%)          |3 (3.90%)          |
+|&nbsp;&nbsp; Other                                                        |4 (6.06%)          |13 (13.98%)        |7 (11.67%)         |11 (15.49%)        |7 (12.96%)         |9 (11.69%)         |
