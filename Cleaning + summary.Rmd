@@ -120,9 +120,10 @@ data = data %>% filter(!is.na(success) & itt == 1 & final_dx != "Non-epileptic s
 
 # ???
 data$homemed_num[is.na(data$homemed_num)] = 0
-data$homemed_num[is.na(data$idmatchA)] = 0
-data$homemed_num[is.na(data$idmatchC)] = 0
+data$idmatchA[is.na(data$idmatchA)] = 0
+data$idmatchC[is.na(data$idmatchC)] = 0
 data$home_seizure_med[is.na(data$home_seizure_med)] = 0
+
 ```
 
 
@@ -139,7 +140,9 @@ Data = data  %>%
          time =  case_when(time_benzo < 15 ~ "[0,15)",
                      time_benzo >= 15 & time_benzo < 30 ~ "[15,30)",
                      time_benzo >= 30 & time_benzo < 45 ~ "[30,45)",
-                     time_benzo >= 45 ~ "[45,)")) 
+                     time_benzo >= 45 ~ "[45,)"),
+         idmatchA = recode(data$idmatchA, "0" = "No", "1" = "Yes"),
+         idmatchC = recode(data$idmatchC, "0" = "No", "1" = "Yes")) 
 
 
 write.csv(Data,file = "./data/newData.csv")
@@ -190,6 +193,9 @@ sum <- list(
     ),
   "Home antiepileptic medications" = 
     list(
+    "mean (sd)" = ~  mean_sd( homemed_num),
+    "Range" = ~ paste(min( homemed_num),max( homemed_num), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( homemed_num)),"(",round(sum(is.na( homemed_num)) / length( id) *100,2), "%)"),
       "0" = ~  qwraps2::n_perc( homemed_num == "0"),
       "1" = ~  qwraps2::n_perc( homemed_num == "1"),
       "2" = ~  qwraps2::n_perc( homemed_num == "2"),
@@ -197,6 +203,18 @@ sum <- list(
       "4" = ~  qwraps2::n_perc( homemed_num == "4"),
       "5" = ~  qwraps2::n_perc( homemed_num == "5"),
       "6" = ~  qwraps2::n_perc( homemed_num == "6")
+    ),
+  "Drug A used at home" = 
+    list(
+      "Yes" = ~ qwraps2::n_perc( idmatchA[!is.na( idmatchA)] == 1),
+      "No" = ~  qwraps2::n_perc( idmatchA[!is.na( idmatchA)] == 0),
+      "NA" = ~ paste0(sum(is.na( idmatchA)),"(",round(sum(is.na( idmatchA)) / length( id) *100,2), "%)")
+    ),
+  "Drug C used at home" = 
+    list(
+      "Yes" = ~ qwraps2::n_perc( idmatchC[!is.na( idmatchC)] == 1),
+      "No" = ~  qwraps2::n_perc( idmatchC[!is.na( idmatchC)] == 0),
+      "NA" = ~ paste0(sum(is.na( idmatchC)),"(",round(sum(is.na( idmatchC)) / length( id) *100,2), "%)")
     ),
   "History of epilepsy" = 
     list(
@@ -244,7 +262,6 @@ cbind(whole, drug_sep)
 
 ```
 
-
 |                                                                            |data (N = 421)       |A (N = 159)          |B (N = 131)          |C (N = 131)          |
 |:---------------------------------------------------------------------------|:--------------------|:--------------------|:--------------------|:--------------------|
 |**Age**                                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
@@ -268,6 +285,9 @@ cbind(whole, drug_sep)
 |&nbsp;&nbsp; Hispanic                                                       |71 (16.86%)          |28 (17.61%)          |19 (14.50%)          |24 (18.32%)          |
 |&nbsp;&nbsp; Non-Hispanic                                                   |350 (83.14%)         |131 (82.39%)         |112 (85.50%)         |107 (81.68%)         |
 |**Home antiepileptic medications**                                          |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; mean (sd)                                                      |1.58 &plusmn; 1.42   |1.61 &plusmn; 1.46   |1.55 &plusmn; 1.29   |1.57 &plusmn; 1.49   |
+|&nbsp;&nbsp; Range                                                          |0-6                  |0-6                  |0-6                  |0-6                  |
+|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
 |&nbsp;&nbsp; 0                                                              |107 (25.42%)         |40 (25.16%)          |29 (22.14%)          |38 (29.01%)          |
 |&nbsp;&nbsp; 1                                                              |125 (29.69%)         |47 (29.56%)          |42 (32.06%)          |36 (27.48%)          |
 |&nbsp;&nbsp; 2                                                              |97 (23.04%)          |37 (23.27%)          |34 (25.95%)          |26 (19.85%)          |
@@ -275,6 +295,14 @@ cbind(whole, drug_sep)
 |&nbsp;&nbsp; 4                                                              |24 (5.70%)           |9 (5.66%)            |4 (3.05%)            |11 (8.40%)           |
 |&nbsp;&nbsp; 5                                                              |14 (3.33%)           |6 (3.77%)            |4 (3.05%)            |4 (3.05%)            |
 |&nbsp;&nbsp; 6                                                              |6 (1.43%)            |3 (1.89%)            |1 (0.76%)            |2 (1.53%)            |
+|**Drug A used at home**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes                                                            |188 (44.66%)         |66 (41.51%)          |65 (49.62%)          |57 (43.51%)          |
+|&nbsp;&nbsp; No                                                             |233 (55.34%)         |93 (58.49%)          |66 (50.38%)          |74 (56.49%)          |
+|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
+|**Drug C used at home**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes                                                            |5 (1.19%)            |3 (1.89%)            |0 (0.00%)            |2 (1.53%)            |
+|&nbsp;&nbsp; No                                                             |416 (98.81%)         |156 (98.11%)         |131 (100.00%)        |129 (98.47%)         |
+|&nbsp;&nbsp; NA                                                             |0(0%)                |0(0%)                |0(0%)                |0(0%)                |
 |**History of epilepsy**                                                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
 |&nbsp;&nbsp; Yes                                                            |305 (72.79%)         |112 (70.89%)         |98 (75.38%)          |95 (72.52%)          |
 |&nbsp;&nbsp; No                                                             |114 (27.21%)         |46 (29.11%)          |32 (24.62%)          |36 (27.48%)          |
