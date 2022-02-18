@@ -15,22 +15,21 @@ library(readxl)
 library(qwraps2)
 options(qwraps2_markup = "markdown")
 
-library(tidyverse)
 library(ggplot2)
 ```
 
 
 ```{r Data clean}
-Age = read_csv("E:/CU/RA/data/ESETT/Form 505.csv") %>% select(zSubjectID, age) %>% rename( id = zSubjectID)
+Age = read_csv("E:/CU/RA/data/ESETT/Form 505.csv") %>% dplyr::select(zSubjectID, age) %>% rename( id = zSubjectID)
 
-Gender = read_csv("E:/CU/RA/data/ESETT/Form 127 gender.csv") %>% select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
+Gender = read_csv("E:/CU/RA/data/ESETT/Form 127 gender.csv") %>% dplyr::select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
 
-Pre = read_csv("E:/CU/RA/data/ESETT/CSV Datasets_form123.csv") %>% select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
+Pre = read_csv("E:/CU/RA/data/ESETT/CSV Datasets_form123.csv") %>% dplyr::select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
   mutate( pre = as.numeric(pre))
 
 homemed = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
   janitor::clean_names() %>% 
-  select(z_subject_id, home_meds_flat_med_name_1, home_meds_flat_med_name_2, home_meds_flat_med_name_3, home_meds_flat_med_name_4, home_meds_flat_med_name_5, home_meds_flat_med_name_6) %>% 
+  dplyr::select(z_subject_id, home_meds_flat_med_name_1, home_meds_flat_med_name_2, home_meds_flat_med_name_3, home_meds_flat_med_name_4, home_meds_flat_med_name_5, home_meds_flat_med_name_6) %>% 
   rename(id = z_subject_id) %>% 
   pivot_longer(home_meds_flat_med_name_1:home_meds_flat_med_name_6, names_to = "med", values_to = "medname", names_prefix = "home_meds_flat_med_name_") %>% 
   mutate(medname = as.character(medname), id = as.numeric(id)) %>% 
@@ -68,7 +67,7 @@ home_seizure_med = data.frame(id = unique(homemed_s$id), home_seizure_med = 1)
 
 benzo = read_csv("E:/CU/RA/data/ESETT/Form 506MC.csv") %>% 
   janitor::clean_names() %>% 
-  select(z_subject_id, f506cqb,f506cqa_min) %>% 
+  dplyr::select(z_subject_id, f506cqb,f506cqa_min) %>% 
   rename(id = z_subject_id) %>% 
   mutate(f506cqa_min = as.numeric(f506cqa_min),
          time_before_drug = abs(f506cqa_min))
@@ -337,39 +336,93 @@ cbind(whole, drug_sep)
 ```{r}
 
 type = list(
-  "Seizure Type" = 
+  "Stroke" = 
     list(
-      "Stroke"= ~ qwraps2::n_perc( cause == "Acute stroke/Hemorrhage"),
-      "Electrolyte anomalies"= ~ qwraps2::n_perc( cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
-      "CNS Tumors/CNS infection"= ~ qwraps2::n_perc( cause == "CNS infection" |  cause == "CNS tumor\r"),
-      "Unprovoked"= ~ qwraps2::n_perc( cause == "Unprovoked"),
-      "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc( cause == "Anti-epileptic drug withdrawal/non compliance"),
-      "Febrile illness"= ~ qwraps2::n_perc( cause == "Febrile illness"),
-      "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc( cause == "Insufficient information to determine/idiopathic/cryptogenic"),
-      "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc( cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
-      "Other"= ~ qwraps2::n_perc( cause == "Other")
-    )
-)
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Acute stroke/Hemorrhage"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Acute stroke/Hemorrhage")),
+  "Electrolyte anomalies" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r")),
+  "CNS Tumors/CNS infection" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & (cause == "CNS infection" |  cause == "CNS tumor\r")),
+      "Failure" = ~ qwraps2::n_perc( success == 0& (cause == "CNS infection" |  cause == "CNS tumor\r"))),
+  "Unprovoked" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Unprovoked"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Unprovoked")),
+  "Anti-epileptic drug withdrawal/non compliance" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Anti-epileptic drug withdrawal/non compliance"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Anti-epileptic drug withdrawal/non compliance")),
+  "Febrile illness" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Febrile illness"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Febrile illness")),
+  "Insufficient information to determine/idiopathic/cryptogenic" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Insufficient information to determine/idiopathic/cryptogenic"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Insufficient information to determine/idiopathic/cryptogenic")),
+  "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)")),
+  "Other" = 
+    list(
+      "Success" = ~ qwraps2::n_perc( success == 1 & cause == "Other"),
+      "Failure" = ~ qwraps2::n_perc( success == 0& cause == "Other"))
 
+)
+  # 
+  # "Seizure Type" = 
+  #   list(
+  #     "Stroke"= ~ qwraps2::n_perc( cause == "Acute stroke/Hemorrhage"),
+  #     "Electrolyte anomalies"= ~ qwraps2::n_perc( cause == "Metabolic (hypoglycemia, hyponatremia, etc.)\r"),
+  #     "CNS Tumors/CNS infection"= ~ qwraps2::n_perc( cause == "CNS infection" |  cause == "CNS tumor\r"),
+  #     "Unprovoked"= ~ qwraps2::n_perc( cause == "Unprovoked"),
+  #     "Anti-epileptic drug withdrawal/non compliance"= ~ qwraps2::n_perc( cause == "Anti-epileptic drug withdrawal/non compliance"),
+  #     "Febrile illness"= ~ qwraps2::n_perc( cause == "Febrile illness"),
+  #     "Insufficient information to determine/idiopathic/cryptogenic"= ~ qwraps2::n_perc( cause == "Insufficient information to determine/idiopathic/cryptogenic"),
+  #     "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"= ~ qwraps2::n_perc( cause == "Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)"),
+  #     "Other"= ~ qwraps2::n_perc( cause == "Other")
+  #   )
 data1 = data %>% 
   mutate(Success = recode(success, "1" = "Success", "0" = "Failure"))
 
-drug_sep = summary_table(data1, type, by = c("Success", "drug"))
+drug_sep = summary_table(data1, type, by = "drug")
 drug_sep
 
 
 ```
 
 
-|                                                                          |Failure.A (N = 66) |Success.A (N = 93) |Failure.B (N = 60) |Success.B (N = 71) |Failure.C (N = 54) |Success.C (N = 77) |
-|:-------------------------------------------------------------------------|:------------------|:------------------|:------------------|:------------------|:------------------|:------------------|
-|**Seizure Type**                                                          |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |&nbsp;&nbsp;       |
-|&nbsp;&nbsp; Stroke                                                       |3 (4.55%)          |3 (3.23%)          |4 (6.67%)          |4 (5.63%)          |2 (3.70%)          |1 (1.30%)          |
-|&nbsp;&nbsp; Electrolyte anomalies                                        |1 (1.52%)          |2 (2.15%)          |2 (3.33%)          |0 (0.00%)          |1 (1.85%)          |0 (0.00%)          |
-|&nbsp;&nbsp; CNS Tumors/CNS infection                                     |4 (6.06%)          |1 (1.08%)          |2 (3.33%)          |3 (4.23%)          |5 (9.26%)          |0 (0.00%)          |
-|&nbsp;&nbsp; Unprovoked                                                   |23 (34.85%)        |32 (34.41%)        |28 (46.67%)        |22 (30.99%)        |12 (22.22%)        |27 (35.06%)        |
-|&nbsp;&nbsp; Anti-epileptic drug withdrawal/non compliance                |10 (15.15%)        |14 (15.05%)        |5 (8.33%)          |10 (14.08%)        |3 (5.56%)          |13 (16.88%)        |
-|&nbsp;&nbsp; Febrile illness                                              |9 (13.64%)         |22 (23.66%)        |8 (13.33%)         |16 (22.54%)        |15 (27.78%)        |20 (25.97%)        |
-|&nbsp;&nbsp; Insufficient information to determine/idiopathic/cryptogenic |7 (10.61%)         |0 (0.00%)          |1 (1.67%)          |2 (2.82%)          |4 (7.41%)          |4 (5.19%)          |
-|&nbsp;&nbsp; Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)  |5 (7.58%)          |6 (6.45%)          |3 (5.00%)          |3 (4.23%)          |5 (9.26%)          |3 (3.90%)          |
-|&nbsp;&nbsp; Other                                                        |4 (6.06%)          |13 (13.98%)        |7 (11.67%)         |11 (15.49%)        |7 (12.96%)         |9 (11.69%)         |
+|                                                                 |A (N = 159)  |B (N = 131)  |C (N = 131)  |
+|:----------------------------------------------------------------|:------------|:------------|:------------|
+|**Stroke**                                                       |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |3 (1.89%)    |4 (3.05%)    |1 (0.76%)    |
+|&nbsp;&nbsp; Failure                                             |3 (1.89%)    |4 (3.05%)    |2 (1.53%)    |
+|**Electrolyte anomalies**                                        |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |2 (1.26%)    |0 (0.00%)    |0 (0.00%)    |
+|&nbsp;&nbsp; Failure                                             |1 (0.63%)    |2 (1.53%)    |1 (0.76%)    |
+|**CNS Tumors/CNS infection**                                     |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |1 (0.63%)    |3 (2.29%)    |0 (0.00%)    |
+|&nbsp;&nbsp; Failure                                             |4 (2.52%)    |2 (1.53%)    |5 (3.82%)    |
+|**Unprovoked**                                                   |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |32 (20.13%)  |22 (16.79%)  |27 (20.61%)  |
+|&nbsp;&nbsp; Failure                                             |23 (14.47%)  |28 (21.37%)  |12 (9.16%)   |
+|**Anti-epileptic drug withdrawal/non compliance**                |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |14 (8.81%)   |10 (7.63%)   |13 (9.92%)   |
+|&nbsp;&nbsp; Failure                                             |10 (6.29%)   |5 (3.82%)    |3 (2.29%)    |
+|**Febrile illness**                                              |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |22 (13.84%)  |16 (12.21%)  |20 (15.27%)  |
+|&nbsp;&nbsp; Failure                                             |9 (5.66%)    |8 (6.11%)    |15 (11.45%)  |
+|**Insufficient information to determine/idiopathic/cryptogenic** |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |0 (0.00%)    |2 (1.53%)    |4 (3.05%)    |
+|&nbsp;&nbsp; Failure                                             |7 (4.40%)    |1 (0.76%)    |4 (3.05%)    |
+|**Toxic (alcohol / drug withdrawal-not AEDs, poisoning, etc.)**  |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |6 (3.77%)    |3 (2.29%)    |3 (2.29%)    |
+|&nbsp;&nbsp; Failure                                             |5 (3.14%)    |3 (2.29%)    |5 (3.82%)    |
+|**Other**                                                        |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Success                                             |13 (8.18%)   |11 (8.40%)   |9 (6.87%)    |
+|&nbsp;&nbsp; Failure                                             |4 (2.52%)    |7 (5.34%)    |7 (5.34%)    |

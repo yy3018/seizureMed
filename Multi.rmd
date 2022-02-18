@@ -1,0 +1,72 @@
+---
+title: "Multivariate"
+author: "Xiaoyang Li"
+date: "1/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(patchwork)
+library(MASS)
+
+data = read_csv("./data/newData.csv") %>% dplyr::select(-X1) %>% 
+  mutate(age_group = factor(age_group, levels = c("child", "adult", "senior" )),
+         se_group = factor(se_group, levels = c("[0,30)", "[30,60)", "[60,)" )),
+         Failure = recode(success, "1" = "Success", "0" = "Failure") ) %>% 
+  mutate(Failure = factor(Failure, levels = c("Success", "Failure")))
+data_vs2 = data %>% dplyr::select(Failure, drug, age_group,gender,provoked,homemed,se_group,benzonum, idmatchA) %>% drop_na()
+
+
+data_vs2A = data_vs2 %>% filter(drug == "A") %>% dplyr::select(-drug)
+data_vs2B = data_vs2 %>% filter(drug == "B") %>% dplyr::select(-drug)
+data_vs2C = data_vs2 %>% filter(drug == "C") %>% dplyr::select(-drug)
+
+```
+
+
+## Variable selection 
+
+### include 392 patients after remove NA in age_group, gender, provoked, homemed, se_group,  benzonum
+
+In this case, I exclude variables related to Benzodiazepine prior to ED visit and Time of 1st dose of benzodiazepine to time of study drug administration 0/15/30/45/. These 2 variable include large number of NAs. In addition, from the bar plot, univariate analysis, and above variable selection, they have none influence to Failure odds of drug B and drug C
+
+
+After adjusting the forward selection threshold, all of three variable selection method generate the same results
+
+
+For drug A, they generate formula as 
+
+$$Failure \sim age +benzonum$$
+
+```{r}
+glmA = glm(Failure ~age_group + benzonum, data = data_vs2A, family = "binomial")
+```
+
+
+For drug B, they generate formula as 
+
+$$Failure \sim provoked + se\ group$$
+
+```{r}
+glmB = glm(Failure ~provoked + se_group, data = data_vs2B, family = "binomial") 
+```
+
+For drug C, they generate formula as 
+
+$$Failure \sim homemed$$
+*Provoked is the last removed variable*
+
+```{r}
+glmC = glm(Failure ~homemed, data = data_vs2C, family = "binomial")
+```
+
+```{r}
+beta = summary(glmC)$coefficient[,1]
+stderror = summary(glmC)$coefficient[,2]
+OR = rbind(exp(beta), exp(beta - 1.959964 * stderror ),exp(beta + 1.959964*stderror))
+OR
+```
+
