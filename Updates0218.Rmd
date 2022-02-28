@@ -1,0 +1,57 @@
+---
+title: "Updates"
+author: "Xiaoyang Li"
+date: "2/18/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. How many patients received additional anti-epileptic medications within the 60 minutes of the study medication infusion?
+
+In Form 501c, there are 317 patients received additional medications in total, and all of them received medication within the 60 minutes accorrding to `F501CQA_min`. Only 116 of them can be mapped to the 478 patients pool. So I assume there are some irrelevant patients in Form 501c. Since part of patients were removed for data analysis, there are 105 out of 421 patients received additional anti-epileptic medications within the 60 minutes.
+
+2. What are these additional medications stratified by age (< 18 yo), (18-65 yo), (>65 yo)?
+
+
+|age_group | # | % |
+|:---------|---:|---:|
+|<18     |  52| 52/217(23.96%)|
+|18-65  |  41| 41/150(27.33%)|
+|>65   |  12| 12/54(22.22%)|
+|Total | 105 | 105/421(22.94%)|
+
+To keep consistent with our age group setting, I offered another version of table as below.
+
+|age_group | # | % |
+|:---------|---:|---:|
+|<18     |  52|52/217(23.96%)|
+|18-60  |  38|38/130(29.23%)|
+|>60   |  15| 15/74(20.27%)|
+|Total | 105 | 105/421(24.94%)|
+
+*I understand "them" in following requirement as the whole patients pool (421)*
+
+*Success is based on the outcome1 from derived form*
+
+I am confused about your requirement about the comparison between intubation and success / intensive care and success, since they are not opposite category. I list how I deal with these variables and the contingency table below. 
+
+3. How many of them ended up with mechanical intubation compared to those successfully treated with the study medications alone?
+
+For the variable for intubation after the 60 minutes I get from form 104 (F104Q34), some of patients haven't been recorded. I hope it is appropriate to treat them as 0. Also, one patients might be recorded multiple times with different Adverse event name. Once they receive intubation, I treat it as a "Yes" no matter what adverse event it is.
+
+|intubation | Success | Failure|
+|:---------|---:|---:|
+|Yes     | 12  |  119|
+|No  | 194  | 96 |
+
+4. How many of them ended up with intensive care unit admission compared to those successfully treated with the study medications alone?
+
+As the code from investigator data dictionary, when the variable = 2, I treat it as a Yes. 
+
+|intensive care | Success | Failure|
+|:---------|---:|---:|
+|Yes     | 86  |  177|
+|No  | 120  | 38 |
