@@ -77,16 +77,17 @@ benzo$time_before_drug[is.na(benzo$time_before_drug)] = 0
 
 benzo_dose = benzo %>% group_by(id) %>% summarise(dose_benzo = n(),
                                                   time_benzo = max(time_before_drug))
+```
 
 
+```{r Data clean}
 form501 = read_csv("E:/CU/RA/data/ESETT/Form 501.csv") %>% select(ID, zSubjectID)
 othmed = read_csv("E:/CU/RA/data/ESETT/Form 501c.csv")%>%
   select(ID, F501CQB1, F501CQA_min) %>% 
   rename(omed_type = F501CQB1,omedt = F501CQA_min) %>% 
-  mutate(omedt60 = omedt <= 60) %>% 
   left_join(form501) 
 othmed_ = left_join(form501, othmed) %>% 
-  mutate(omed = as.numeric(!is.na(omed_type))) %>% select(-ID, -omed_type) %>% 
+  mutate(omed = as.numeric(!is.na(omed_type))) %>% select(-ID) %>% 
   rename(id = zSubjectID)
 
 
@@ -99,7 +100,7 @@ intcare = read_csv("E:/CU/RA/data/ESETT/Form 123.csv")%>% select(zSubjectID, F12
 
 
 
-intub1 = read_sas("E:/CU/RA/data/ESETT/form104.sas7bdat") %>% select(zSubjectID, F104Q34, F104AEName) %>% rename(id = zSubjectID, intubo60 = F104Q34, cause = F104AEName)
+intub1 = read_sas("E:/CU/RA/data/ESETT/form104.sas7bdat") %>% select(zSubjectID, F104Q34, F104Q42_min) %>% rename(id = zSubjectID, intubo60 = F104Q34, intubtime = F104Q42_min)
 
 intub1 = success %>% left_join(intub1)
 
@@ -110,12 +111,7 @@ intub1 = intub1 %>% group_by(id) %>% summarise(sum = sum(intubo60))
 intub2 = read_sas("E:/CU/RA/data/ESETT/form503.sas7bdat") %>% select(zSubjectID, F503Q03) %>% rename(id = zSubjectID, intubwi60 = F503Q03)
 
 
-intub = left_join(intub2, intub1) 
-
-
-intub = intub %>%
-  mutate(add = sum + intubwi60) %>% 
-  mutate(itb = add > 0) %>% select(id, itb)
+intub = left_join(intub2, intub1) %>% mutate(intubo60 = as.numeric(sum > 0))
 
 
 ```
@@ -142,7 +138,7 @@ data = data %>%
 
 
 data = data %>% 
-  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_num) %>% full_join(homemed_match) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% full_join(othmed_) %>% full_join(intub)  %>% full_join(intcare)%>% full_join(success) %>% 
+  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_num) %>% full_join(homemed_match) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% full_join(othmed_) %>% full_join(intub)  %>% full_join(intcare)%>% 
   mutate(age_group = case_when(age < 18 ~ "child",
                      age >= 18 & age < 65 ~ "adult",
                      age >= 65 ~ "senior"), 
@@ -471,6 +467,9 @@ drug_sep
 ## about additional medication
 
 ```{r}
-data %>% group_by(age_group) %>% summarise(n = n())
+data %>% filter(omed ==1 &intcr == T&age>= 18 & age <=65)
+data %>% filter(omed ==1 &intcr == T&age>65)
+
+data %>% filter(sz60==0)
 ```
 

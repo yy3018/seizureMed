@@ -1,0 +1,431 @@
+---
+title: "Update 0313"
+author: "Xiaoyang Li"
+date: "3/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set( echo = FALSE,warning = F,message = F)
+
+library(tidyverse)
+library(readxl)
+
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+
+library(ggplot2)
+library(haven)
+```
+
+
+```{r}
+
+Age = read_csv("E:/CU/RA/data/ESETT/Form 505.csv") %>% dplyr::select(zSubjectID, age) %>% rename( id = zSubjectID)
+
+Gender = read_csv("E:/CU/RA/data/ESETT/Form 127 gender.csv") %>% dplyr::select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
+
+Pre = read_csv("E:/CU/RA/data/ESETT/CSV Datasets_form123.csv") %>% dplyr::select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
+  mutate( pre = as.numeric(pre))
+
+homemed = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(z_subject_id, home_meds_flat_med_name_1, home_meds_flat_med_name_2, home_meds_flat_med_name_3, home_meds_flat_med_name_4, home_meds_flat_med_name_5, home_meds_flat_med_name_6) %>% 
+  rename(id = z_subject_id) %>% 
+  pivot_longer(home_meds_flat_med_name_1:home_meds_flat_med_name_6, names_to = "med", values_to = "medname", names_prefix = "home_meds_flat_med_name_") %>% 
+  mutate(medname = as.character(medname), id = as.numeric(id)) %>% 
+  filter(medname != "NULL") 
+
+homemed_num = homemed %>% 
+  group_by(id) %>% 
+  summarise(homemed_num = n())
+
+# A = levetiracetam
+# 
+# B = Fosphenytoin
+# 
+# C = Valproate
+
+homemed_match = homemed %>%
+  mutate(matchA = case_when(medname == "Levetiracetam" ~ 1,
+                            medname != "Levetiracetam" ~ 0),
+         matchC = case_when(medname == "Valproate" ~ 1,
+                            medname != "Valproate" ~ 0)) %>% 
+  group_by(id) %>% summarise(sumA = sum(matchA), sumC = sum(matchC)) %>% 
+  mutate(idmatchA = case_when(sumA > 0 ~ 1,
+                              sumA == 0 ~ 0),
+         idmatchC = case_when(sumC > 0 ~ 1,
+                              sumC == 0 ~ 0)) 
+
+
+homemed_s = homemed %>% 
+  filter(medname != "Aspirin" & medname != "Naproxen" & medname != "Heparin"& medname != "Ibuprofen")#Aspirin Naproxen Heparin Ibuprofen 
+
+length(unique(homemed_s$id)) #333
+
+home_seizure_med = data.frame(id = unique(homemed_s$id), home_seizure_med = 1)
+
+
+benzo = read_csv("E:/CU/RA/data/ESETT/Form 506MC.csv") %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(z_subject_id, f506cqb,f506cqa_min) %>% 
+  rename(id = z_subject_id) %>% 
+  mutate(f506cqa_min = as.numeric(f506cqa_min),
+         time_before_drug = abs(f506cqa_min))
+
+benzo$time_before_drug[is.na(benzo$time_before_drug)] = 0
+
+benzo_dose = benzo %>% group_by(id) %>% summarise(dose_benzo = n(),
+                                                  time_benzo = max(time_before_drug))
+
+form501 = read_csv("E:/CU/RA/data/ESETT/Form 501.csv") %>% select(ID, zSubjectID)
+othmed = read_csv("E:/CU/RA/data/ESETT/Form 501c.csv")%>%
+  select(ID, F501CQB1, F501CQA_min) %>% 
+  rename(omed_type = F501CQB1,omedt = F501CQA_min) %>% 
+  left_join(form501) 
+othmed_ = left_join(form501, othmed) %>% 
+  mutate(omed = as.numeric(!is.na(omed_type))) %>% select(-ID) %>% 
+  rename(id = zSubjectID)
+
+
+success = read_csv("E:/CU/RA/data/ESETT/derived.csv")[,c(4,6,17)]
+colnames(success) = c("id", "outcome1A", "outcome1")
+
+
+intcare = read_csv("E:/CU/RA/data/ESETT/Form 123.csv")%>% select(zSubjectID, F123Q09) %>% rename(id = zSubjectID, ERD = F123Q09) %>% 
+  mutate(intcr = (ERD == 2)) %>% left_join(success) %>% select(-ERD)
+
+
+
+intub1 = read_sas("E:/CU/RA/data/ESETT/form104.sas7bdat") %>% select(zSubjectID, F104Q34, F104Q42_min) %>% rename(id = zSubjectID, intubo60 = F104Q34, intubtime = F104Q42_min)
+
+intub1 = success %>% left_join(intub1)
+
+intub1$intubo60[is.na(intub1$intubo60)] = 0
+intub1$intubtime[is.na(intub1$intubtime)] = 40000
+
+intub1 = intub1 %>% group_by(id) %>% summarise(sum = sum(intubo60), intubtime = min(intubtime))
+intub1$intubtime[intub1$intubtime==40000] = NA
+
+intub2 = read_sas("E:/CU/RA/data/ESETT/form503.sas7bdat") %>% select(zSubjectID, F503Q03) %>% rename(id = zSubjectID, intubwi60 = F503Q03)
+
+
+intub = left_join(intub2, intub1) %>% mutate(intubo60 = as.numeric(sum > 0))
+data = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
+  janitor::clean_names() %>% 
+  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, outcome1a_treatment_success_adjudicated_1_yes_0_no,  children, se_duration_before_study_drug, benzos_pre_ed, study_drug, se_precipitnat, race, hispanic, itt, final_dx) %>% 
+  rename(id = z_subject_id,
+         sz60 = sz_at_60mins,
+         res60 = responsive_at_60mins,
+         outcome = outcome1a_treatment_success_adjudicated_1_yes_0_no,
+         se = se_duration_before_study_drug,
+         drug = study_drug,
+         cause = se_precipitnat)
+
+data = data %>%
+  mutate(id = as.numeric(id),
+         benzos_pre_ed = as.numeric(benzos_pre_ed), 
+         sz60 = as.numeric(sz60),
+         res60 = as.numeric(res60), 
+         se = as.numeric(se),
+         itt = as.numeric(itt)) 
+
+
+data = data %>% 
+  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_num) %>% full_join(homemed_match) %>% full_join(home_seizure_med) %>% full_join(benzo_dose) %>% full_join(othmed_) %>% full_join(intub)  %>% full_join(intcare)%>% 
+  mutate(age_group = case_when(age < 18 ~ "child",
+                     age >= 18 & age < 65 ~ "adult",
+                     age >= 65 ~ "senior"), 
+         se_group = case_when(se < 30 ~ "[0,30)",
+                     se >= 30 & se < 60 ~ "[30,60)",
+                     se >= 60 ~ "[60,)"), 
+         success = case_when(sz60 == 0 & res60 == 1 ~ 1,
+                            sz60 != 0 | res60 != 1 ~ 0),
+         provoked = case_when(cause != "Unprovoked" ~ "Yes",
+                              cause == "Unprovoked" ~ "No")) %>%
+  dplyr::select( -agedist)
+
+data = data %>% filter(!is.na(success) & itt == 1 & final_dx != "Non-epileptic spell") 
+
+# ???
+data$homemed_num[is.na(data$homemed_num)] = 0
+data$idmatchA[is.na(data$idmatchA)] = 0
+data$idmatchC[is.na(data$idmatchC)] = 0
+data$home_seizure_med[is.na(data$home_seizure_med)] = 0
+
+data = data %>% mutate(
+  med3 = recode(omed_type,'
+1'='brivaracetam','
+2'='carbamazepine','
+3'='clobazam','
+4'='clonazepam','
+5'='dexmedetomidine','
+6'='diazepam','
+7'='eslicarbazepine','
+8'='ethosuximide','
+9'='etomidate','
+10'='ezogabine','
+11'='felbamate','
+12'='fosphenytoin','
+13'='gabapentin','
+14'='ketamine','
+15'='lacosamide','
+16'='lamotrigine','
+17'='levetiracetam','
+18'='lorazepam','
+19'='midazolam','
+20'='methohexital','
+21'='oxcarbazepine','
+22'='pentoarbital','
+23'='phenobarbital','
+24'='phenytoin','
+25'='propofol','
+26'='pregabalin','
+27'='primidone','
+28'='rufinamide','
+29'='thiopental','
+30'='tiagabine','
+31'='topiramate','
+32'='valproic acid or valproate','
+33'='vigabatrin','
+34'='zonisamide')) %>% select(-omed_type) %>% mutate(
+  age_group= factor(age_group, levels = c("child", "adult", "senior" ))
+)
+
+Data = data %>% select(intubwi60,intubo60, intubtime)
+```
+
+# frequency of each medication
+
+```{r}
+data %>% filter( !is.na(med3 ))%>% group_by(med3) %>% summarise(n = n(),percent = paste0(round(n()/1.05,3), "%")) %>% arrange(desc(n) )
+```
+
+# summary statistics
+
+```{r include = FALSE}
+
+sum <- list(
+  "Age" = 
+    list(
+      "mean (sd)" = ~  mean_sd( age),
+      "Range" = ~ paste(min( age),max( age), sep = "-"),
+      "NA" = ~ paste0(sum(is.na( age)),"(",round(sum(is.na( age)) / length( id) *100,2), "%)")
+    ),
+  "Age Group" = 
+    list(
+      "0-17y" = ~ qwraps2::n_perc( age< 18),
+      "18y - 60 y" = ~ qwraps2::n_perc( age >= 18 &  age <= 65),
+      ">60 y" = ~ qwraps2::n_perc( age>65)
+    ),
+  "Gender" = 
+    list(
+      "Female" = ~ qwraps2::n_perc( Male == 0),
+      "Male" = ~ qwraps2::n_perc( Male == 1)),
+  "Race" = 
+    list(
+      "Black" = ~ qwraps2::n_perc( race == "Black/African American"),
+      "White" = ~ qwraps2::n_perc( race == "White"),
+      "Asian" = ~ qwraps2::n_perc( race == "Asian"),
+      "Other" = ~ qwraps2::n_perc( race != "White" &  race != "Black/African American" &  race != "Asian" &  race != "Unknown" ),
+      "Unknown" = ~ qwraps2::n_perc( race == "Unknown")
+    ),
+  "Ethnicity" = 
+    list(
+      "Hispanic" = ~ qwraps2::n_perc( hispanic == "1"),
+      "Non-Hispanic" = ~ qwraps2::n_perc( hispanic == "0")
+    ),
+  "History of epilepsy" = 
+    list(
+      "Yes" = ~ qwraps2::n_perc( pre[!is.na( pre)] == 1),
+      "No" = ~  qwraps2::n_perc( pre[!is.na( pre)] == 0),
+      "NA" = ~ paste0(sum(is.na( pre)),"(",round(sum(is.na( pre)) / length( id) *100,2), "%)")
+    ),
+  "Duration of seizure" = list(
+    "mean (sd)" = ~  mean_sd( se[!is.na( se)]),
+    "Range" = ~ paste(min( se[!is.na( se)]),max( se[!is.na( se)]), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( se)),"(",round(sum(is.na( se)) / length( id) *100,2), "%)")
+  ),
+  "seizure at 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( sz60[!is.na( sz60)] == 1),
+    "No" = ~  qwraps2::n_perc( sz60[!is.na( sz60)] == 0),
+    "NA" = ~ paste0(sum(is.na( sz60)),"(",round(sum(is.na( sz60)) / length( id) *100,2), "%)")
+  ),
+  "intubation within 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubwi60)),"(",round(sum(is.na( intubwi60)) / length( id) *100,2), "%)")
+  ),
+  "intubation after 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( intubo60[!is.na( intubo60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubo60[!is.na( intubo60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubo60)),"(",round(sum(is.na( intubo60)) / length( id) *100,2), "%)")
+  ),
+  "ICU" = list(
+    "Yes" = ~ qwraps2::n_perc( intcr[!is.na( intcr)] == 1),
+    "No" = ~  qwraps2::n_perc( intcr[!is.na( intcr)] == 0),
+    "NA" = ~ paste0(sum(is.na( intcr)),"(",round(sum(is.na( intcr)) / length( id) *100,2), "%)")
+  )
+)
+
+omed_sep = summary_table(group_by(data, omed), sum)
+whole = summary_table(data, sum)
+
+cbind(whole, omed_sep)
+```
+
+
+|                            |data (N = 421)       |No additional medication (N = 316)          |Received additional medication (N = 105)          |
+|:---------------------------|:--------------------|:--------------------|:--------------------|
+|**Age**                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; mean (sd)      |28.19 &plusmn; 26.22 |28.01 &plusmn; 26.57 |28.73 &plusmn; 25.27 |
+|&nbsp;&nbsp; Range          |1-94                 |1-94                 |1-85                 |
+|&nbsp;&nbsp; NA             |0(0%)                |0(0%)                |0(0%)                |
+|**Age Group**               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; 0-17y          |217 (51.54%)         |165 (52.22%)         |52 (49.52%)          |
+|&nbsp;&nbsp; 18y - 60 y     |154 (36.58%)         |113 (35.76%)         |41 (39.05%)          |
+|&nbsp;&nbsp; >60 y          |50 (11.88%)          |38 (12.03%)          |12 (11.43%)          |
+|**Gender**                  |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Female         |176 (41.81%)         |136 (43.04%)         |40 (38.10%)          |
+|&nbsp;&nbsp; Male           |245 (58.19%)         |180 (56.96%)         |65 (61.90%)          |
+|**Race**                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Black          |182 (43.23%)         |139 (43.99%)         |43 (40.95%)          |
+|&nbsp;&nbsp; White          |179 (42.52%)         |134 (42.41%)         |45 (42.86%)          |
+|&nbsp;&nbsp; Asian          |17 (4.04%)           |12 (3.80%)           |5 (4.76%)            |
+|&nbsp;&nbsp; Other          |11 (2.61%)           |7 (2.22%)            |4 (3.81%)            |
+|&nbsp;&nbsp; Unknown        |32 (7.60%)           |24 (7.59%)           |8 (7.62%)            |
+|**Ethnicity**               |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Hispanic       |71 (16.86%)          |57 (18.04%)          |14 (13.33%)          |
+|&nbsp;&nbsp; Non-Hispanic   |350 (83.14%)         |259 (81.96%)         |91 (86.67%)          |
+|**History of epilepsy**     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes            |305 (72.79%)         |225 (71.66%)         |80 (76.19%)          |
+|&nbsp;&nbsp; No             |114 (27.21%)         |89 (28.34%)          |25 (23.81%)          |
+|&nbsp;&nbsp; NA             |2(0.48%)             |2(0.63%)             |0(0%)                |
+|**Duration of seizure**     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; mean (sd)      |77.47 &plusmn; 60.07 |77.58 &plusmn; 57.02 |77.12 &plusmn; 68.71 |
+|&nbsp;&nbsp; Range          |6-620                |6-385                |10-620               |
+|&nbsp;&nbsp; NA             |29(6.89%)            |22(6.96%)            |7(6.67%)             |
+|**seizure at 60min**        |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes            |44 (10.45%)          |34 (10.76%)          |10 (9.52%)           |
+|&nbsp;&nbsp; No             |377 (89.55%)         |282 (89.24%)         |95 (90.48%)          |
+|&nbsp;&nbsp; NA             |0(0%)                |0(0%)                |0(0%)                |
+|**intubation within 60min** |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes            |91 (21.62%)          |68 (21.52%)          |23 (21.90%)          |
+|&nbsp;&nbsp; No             |330 (78.38%)         |248 (78.48%)         |82 (78.10%)          |
+|&nbsp;&nbsp; NA             |0(0%)                |0(0%)                |0(0%)                |
+|**intubation after 60min**  |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes            |131 (31.12%)         |100 (31.65%)         |31 (29.52%)          |
+|&nbsp;&nbsp; No             |290 (68.88%)         |216 (68.35%)         |74 (70.48%)          |
+|&nbsp;&nbsp; NA             |0(0%)                |0(0%)                |0(0%)                |
+|**ICU**                     |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes            |263 (62.47%)         |203 (64.24%)         |60 (57.14%)          |
+|&nbsp;&nbsp; No             |158 (37.53%)         |113 (35.76%)         |45 (42.86%)          |
+|&nbsp;&nbsp; NA             |0(0%)                |0(0%)                |0(0%)                |
+
+# Further description for 105 who received 3rd line medication
+
+```{r  include = FALSE}
+data$med3[is.na(data$med3)] = "None"
+data105 = data %>% filter(med3 != "None") %>% mutate(intbf3 = intubtime < omedt)
+  
+sum105 = list(
+  "3rd line medication" = list(
+      "lorazepam" = ~  qwraps2::n_perc( med3 == "lorazepam"),
+      "propofol" = ~  qwraps2::n_perc( med3 == "propofol"),
+      "etomidate" = ~  qwraps2::n_perc( med3 == "etomidate"),
+      "midazolam" = ~  qwraps2::n_perc( med3 == "midazolam"),
+      "levetiracetam" = ~  qwraps2::n_perc( med3 == "levetiracetam"),
+      "fosphenytoin" = ~  qwraps2::n_perc( med3 == "fosphenytoin"),
+      "ketamine" = ~  qwraps2::n_perc( med3 == "ketamine"),
+      "valproic acid or valproate" = ~  qwraps2::n_perc( med3 == "valproic acid or valproate"),
+      "lacosamide" = ~  qwraps2::n_perc( med3 == "lacosamide"),
+      "phenobarbital" = ~  qwraps2::n_perc( med3 == "phenobarbital")
+  ),
+  "seizure at 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( sz60[!is.na( sz60)] == 1),
+    "No" = ~  qwraps2::n_perc( sz60[!is.na( sz60)] == 0),
+    "NA" = ~ paste0(sum(is.na( sz60)),"(",round(sum(is.na( sz60)) / length( id) *100,2), "%)")
+  ),
+  "intubation within 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubwi60)),"(",round(sum(is.na( intubwi60)) / length( id) *100,2), "%)")
+  ),
+  "intubation after 60min" = list(
+    "Yes" = ~ qwraps2::n_perc( intubo60[!is.na( intubo60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubo60[!is.na( intubo60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubo60)),"(",round(sum(is.na( intubo60)) / length( id) *100,2), "%)")
+  ),
+  "ICU" = list(
+    "Yes" = ~ qwraps2::n_perc( intcr[!is.na( intcr)] == 1),
+    "No" = ~  qwraps2::n_perc( intcr[!is.na( intcr)] == 0),
+    "NA" = ~ paste0(sum(is.na( intcr)),"(",round(sum(is.na( intcr)) / length( id) *100,2), "%)")
+  )
+)
+
+
+age_sep = summary_table(group_by(data105, age_group), sum105)
+whole = summary_table(data105, sum105)
+
+cbind(whole, age_sep)
+
+
+```
+
+
+|                                        |data105 (N = 105) |child (N = 52) |adult (N = 41) |senior (N = 12) |
+|:---------------------------------------|:-----------------|:--------------|:--------------|:---------------|
+|**3rd line medication**                 |&nbsp;&nbsp;      |&nbsp;&nbsp;   |&nbsp;&nbsp;   |&nbsp;&nbsp;    |
+|&nbsp;&nbsp; lorazepam                  |38 (36.19%)       |17 (32.69%)    |16 (39.02%)    |5 (41.67%)      |
+|&nbsp;&nbsp; propofol                   |17 (16.19%)       |7 (13.46%)     |8 (19.51%)     |2 (16.67%)      |
+|&nbsp;&nbsp; etomidate                  |14 (13.33%)       |11 (21.15%)    |3 (7.32%)      |0 (0.00%)       |
+|&nbsp;&nbsp; midazolam                  |13 (12.38%)       |7 (13.46%)     |3 (7.32%)      |3 (25.00%)      |
+|&nbsp;&nbsp; levetiracetam              |8 (7.62%)         |3 (5.77%)      |4 (9.76%)      |1 (8.33%)       |
+|&nbsp;&nbsp; fosphenytoin               |7 (6.67%)         |4 (7.69%)      |2 (4.88%)      |1 (8.33%)       |
+|&nbsp;&nbsp; ketamine                   |4 (3.81%)         |1 (1.92%)      |3 (7.32%)      |0 (0.00%)       |
+|&nbsp;&nbsp; valproic acid or valproate |2 (1.90%)         |1 (1.92%)      |1 (2.44%)      |0 (0.00%)       |
+|&nbsp;&nbsp; lacosamide                 |1 (0.95%)         |1 (1.92%)      |0 (0.00%)      |0 (0.00%)       |
+|&nbsp;&nbsp; phenobarbital              |1 (0.95%)         |0 (0.00%)      |1 (2.44%)      |0 (0.00%)       |
+|**seizure at 60min**                    |&nbsp;&nbsp;      |&nbsp;&nbsp;   |&nbsp;&nbsp;   |&nbsp;&nbsp;    |
+|&nbsp;&nbsp; Yes                        |10 (9.52%)        |4 (7.69%)      |3 (7.32%)      |3 (25.00%)      |
+|&nbsp;&nbsp; No                         |95 (90.48%)       |48 (92.31%)    |38 (92.68%)    |9 (75.00%)      |
+|&nbsp;&nbsp; NA                         |0(0%)             |0(0%)          |0(0%)          |0(0%)           |
+|**intubation within 60min**             |&nbsp;&nbsp;      |&nbsp;&nbsp;   |&nbsp;&nbsp;   |&nbsp;&nbsp;    |
+|&nbsp;&nbsp; Yes                        |23 (21.90%)       |8 (15.38%)     |12 (29.27%)    |3 (25.00%)      |
+|&nbsp;&nbsp; No                         |82 (78.10%)       |44 (84.62%)    |29 (70.73%)    |9 (75.00%)      |
+|&nbsp;&nbsp; NA                         |0(0%)             |0(0%)          |0(0%)          |0(0%)           |
+|**intubation after 60min**              |&nbsp;&nbsp;      |&nbsp;&nbsp;   |&nbsp;&nbsp;   |&nbsp;&nbsp;    |
+|&nbsp;&nbsp; Yes                        |31 (29.52%)       |12 (23.08%)    |14 (34.15%)    |5 (41.67%)      |
+|&nbsp;&nbsp; No                         |74 (70.48%)       |40 (76.92%)    |27 (65.85%)    |7 (58.33%)      |
+|&nbsp;&nbsp; NA                         |0(0%)             |0(0%)          |0(0%)          |0(0%)           |
+|**ICU**                                 |&nbsp;&nbsp;      |&nbsp;&nbsp;   |&nbsp;&nbsp;   |&nbsp;&nbsp;    |
+|&nbsp;&nbsp; Yes                        |60 (57.14%)       |28 (53.85%)    |24 (58.54%)    |8 (66.67%)      |
+|&nbsp;&nbsp; No                         |45 (42.86%)       |24 (46.15%)    |17 (41.46%)    |4 (33.33%)      |
+|&nbsp;&nbsp; NA                         |0(0%)             |0(0%)          |0(0%)          |0(0%)           |
+
+
+```{r include = FALSE}
+sumitb = list(
+  "intubation before 3rd line medication" = list(
+    
+    "Yes" = ~ qwraps2::n_perc( intbf3[!is.na( intbf3)] == 1),
+    "No" = ~  qwraps2::n_perc( intbf3[!is.na( intbf3)] == 0),
+    "No intubation " = ~ paste0(sum(is.na( intbf3)),"(",round(sum(is.na( intbf3)) / length( id) *100,2), "%)")
+  )
+)
+
+
+whole = summary_table(data105, sumitb)
+whole
+
+```
+
+There are 31 patients have intubation in total, part of them have intubation with 60 minutes (F503Q03) after study drug given, all of them have intubation after 60 minutes(F104Q34). 35.48% of those who have intubation experience it before the 3rd line medication
+
+
+|                                          |data105 (N = 105) |
+|:-----------------------------------------|:-----------------|
+|**intubation before 3rd line medication** |&nbsp;&nbsp;      |
+|&nbsp;&nbsp; Yes                          |11 (35.48%)       |
+|&nbsp;&nbsp; No                           |20 (64.52%)       |
+|&nbsp;&nbsp; No intubation                |74       |
