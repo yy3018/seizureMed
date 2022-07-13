@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "Xiaoyang Li"
+date: "5/20/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+
+library(ggplot2)
+library(haven)
+```
+
+```{r}
+Age = read_csv("E:/CU/RA/data/ESETT/Form 505.csv") %>% dplyr::select(zSubjectID, age) %>% rename( id = zSubjectID)
+
+Gender = read_csv("E:/CU/RA/data/ESETT/Form 127 gender.csv") %>% dplyr::select(zSubjectID,agedist, Male)%>% rename( id = zSubjectID)
+
+Pre = read_csv("E:/CU/RA/data/ESETT/CSV Datasets_form123.csv") %>% dplyr::select(zSubjectID,F123Q06)%>% rename( id = zSubjectID, pre = F123Q06) %>%  
+  mutate( pre = as.numeric(pre))
+
+
+homemed = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(z_subject_id, home_meds_flat_med_name_1, home_meds_flat_med_name_2, home_meds_flat_med_name_3, home_meds_flat_med_name_4, home_meds_flat_med_name_5, home_meds_flat_med_name_6) %>% 
+  rename(id = z_subject_id) %>% 
+  pivot_longer(home_meds_flat_med_name_1:home_meds_flat_med_name_6, names_to = "med", values_to = "medname", names_prefix = "home_meds_flat_med_name_") %>% 
+  mutate(medname = as.character(medname), id = as.numeric(id)) %>% 
+  filter(medname != "NULL") 
+
+
+homemed_match = homemed %>%
+  mutate(matchA = case_when(medname == "Levetiracetam" ~ 1,
+                            medname != "Levetiracetam" ~ 0),
+         matchC = case_when(medname == "Valproate" ~ 1,
+                            medname != "Valproate" ~ 0)) %>% 
+  group_by(id) %>% summarise(sumA = sum(matchA), sumC = sum(matchC)) %>% 
+  mutate(idmatchA = case_when(sumA > 0 ~ 1,
+                              sumA == 0 ~ 0),
+         idmatchC = case_when(sumC > 0 ~ 1,
+                              sumC == 0 ~ 0)) 
+
+
+form501 = read_csv("E:/CU/RA/data/ESETT/Form 501.csv") %>% select(ID, zSubjectID)
+
+othmed = read_csv("E:/CU/RA/data/ESETT/Form 501c.csv")%>%
+  select(MotherRecID, F501CQB1, F501CQA_min) %>% 
+  rename(omed_type = F501CQB1,omedt = F501CQA_min, ID = MotherRecID) %>% 
+  left_join(form501) 
+othmed_ = left_join(form501, othmed)  %>% select(-ID) %>% 
+  rename(id = zSubjectID)%>% 
+  mutate(
+  omed_name = recode(omed_type,'
+1'='brivaracetam','
+2'='carbamazepine','
+3'='clobazam','
+4'='clonazepam','
+5'='dexmedetomidine','
+6'='diazepam','
+7'='eslicarbazepine','
+8'='ethosuximide','
+9'='etomidate','
+10'='ezogabine','
+11'='felbamate','
+12'='fosphenytoin','
+13'='gabapentin','
+14'='ketamine','
+15'='lacosamide','
+16'='lamotrigine','
+17'='levetiracetam','
+18'='lorazepam','
+19'='midazolam','
+20'='methohexital','
+21'='oxcarbazepine','
+22'='pentoarbital','
+23'='phenobarbital','
+24'='phenytoin','
+25'='propofol','
+26'='pregabalin','
+27'='primidone','
+28'='rufinamide','
+29'='thiopental','
+30'='tiagabine','
+31'='topiramate','
+32'='valproic acid or valproate','
+33'='vigabatrin','
+34'='zonisamide'))%>% select(-omed_type) %>% 
+  mutate(omedmatch = ((omed_name =="levetiracetam") +(omed_name =="fosphenytoin")+(omed_name =="valproic acid or valproate"))>0 )
+
+
+intcare = read_csv("E:/CU/RA/data/ESETT/Form 123.csv")%>% select(zSubjectID, F123Q09) %>% rename(id = zSubjectID, ERD = F123Q09) %>% 
+  mutate(intcr = (ERD == 2)) %>%select(-ERD)
+
+
+intub1 = read_sas("E:/CU/RA/data/ESETT/form104.sas7bdat") %>% select(zSubjectID, F104Q34, F104Q42_min) %>% rename(id = zSubjectID, intubo60 = F104Q34, intubtime = F104Q42_min)
+
+intub1$intubo60[is.na(intub1$intubo60)] = 0
+
+intub1 = intub1 %>% group_by(id) %>% summarise(sum = sum(intubo60))
+
+intub2 = read_sas("E:/CU/RA/data/ESETT/form503.sas7bdat") %>% select(zSubjectID, F503Q03) %>% rename(id = zSubjectID, intubwi60 = F503Q03)
+
+
+intub = left_join(intub2, intub1) %>% mutate(intubo60 = as.numeric(sum > 0))
+
+outcm = read_csv("E:/CU/RA/data/ESETT/Form 501.csv") %>%
+  rename(id = zSubjectID, 
+         sez60 = F501Q07,
+         respd = F501Q08,
+         antisewi60 = F501Q10) %>% 
+  mutate(outcome1 =  case_when(sez60 == 0 ~ 1,
+                            sez60 != 0  ~ 0),
+         outcome2 = case_when(sez60 == 0 & respd == 1 ~ 1,
+                            sez60 == 1 | respd == 0  ~ 0))  %>% select(id, sez60, respd, outcome1, outcome2, antisewi60)
+
+data = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
+  janitor::clean_names() %>% 
+  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, se_duration_before_study_drug,  study_drug, race, hispanic,  final_dx, outcome1a_treatment_success_adjudicated_1_yes_0_no) %>% 
+  rename(id = z_subject_id,
+         sz60 = sz_at_60mins,
+         res60 = responsive_at_60mins,
+         outcome = outcome1a_treatment_success_adjudicated_1_yes_0_no,
+         se = se_duration_before_study_drug,
+         drug = study_drug)
+
+data = data %>%
+  mutate(id = as.numeric(id),
+         sz60 = as.numeric(sz60),
+         res60 = as.numeric(res60), 
+         se = as.numeric(se)) %>% full_join(outcm) %>% 
+  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_match)   %>% full_join(othmed_) %>% full_join(intub)  %>% full_join(intcare)%>% 
+  mutate(age_group = case_when(age < 18 ~ "child",
+                     age >= 18 & age <= 65 ~ "adult",
+                     age > 65 ~ "senior"))   %>% 
+  filter(id != 1129) %>% 
+  filter( final_dx != "Non-epileptic spell") 
+```
+
+```{r}
+otherdrug = data %>% select(id,antisewi60, omedt,omed_name, omedmatch, drug,sz60, res60, sez60, respd, outcome1, outcome2)
+
+otherdrug$omed =0
+otherdrug$omed[!is.na(otherdrug$omed_name)] =1
+
+table(otherdrug$omed, otherdrug$antisewi60)
+
+```
+
