@@ -91,8 +91,19 @@ othmed_ = left_join(form501, othmed)  %>% select(-ID) %>%
 32'='valproic acid or valproate','
 33'='vigabatrin','
 34'='zonisamide'))%>% select(-omed_type) %>% 
-  mutate(omedmatch = ((omed_name =="levetiracetam") +(omed_name =="fosphenytoin")+(omed_name =="valproic acid or valproate"))>0 )
+  mutate(omedmatch = ((omed_name =="levetiracetam") +(omed_name =="fosphenytoin")+(omed_name =="valproic acid or valproate"))>0 ,
+         omedmatchA = (omed_name =="levetiracetam"),
+         omedmatchB = (omed_name =="fosphenytoin"),
+         omedmatchC = (omed_name =="valproic acid or valproate"))
 
+othmed_$omedmatch[is.na(othmed_$omedmatch)] = FALSE
+othmed_$omeduse=FALSE
+othmed_$omeduse[!is.na(othmed_$omed_name)] = TRUE
+othmed_1 = othmed_ %>% group_by(id) %>% summarise(med_match = sum(omedmatch) > 0,
+                                                  med_matchA = sum(omedmatchA)>0,
+                                                  med_matchB = sum(omedmatchB)>0,
+                                                  med_matchC = sum(omedmatchC)>0,
+                                                  med_use = sum(omeduse)>0)
 
 intcare = read_csv("E:/CU/RA/data/ESETT/Form 123.csv")%>% select(zSubjectID, F123Q09) %>% rename(id = zSubjectID, ERD = F123Q09) %>% 
   mutate(intcr = (ERD == 2)) %>%select(-ERD)
@@ -134,12 +145,19 @@ data = data %>%
          sz60 = as.numeric(sz60),
          res60 = as.numeric(res60), 
          se = as.numeric(se)) %>% full_join(outcm) %>% 
-  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_match)   %>% full_join(othmed_) %>% full_join(intub)  %>% full_join(intcare)%>% 
+  full_join(Age) %>% full_join(Gender) %>% full_join(Pre) %>% full_join(homemed_match)   %>%  full_join(intub)  %>% full_join(intcare) %>%full_join(othmed_1) %>% 
   mutate(age_group = case_when(age < 18 ~ "child",
                      age >= 18 & age <= 65 ~ "adult",
                      age > 65 ~ "senior"))   %>% 
-  filter(id != 1129) %>% 
-  filter( final_dx != "Non-epileptic spell") 
+   filter(id != 1129) 
+
+data %>% 
+   filter( final_dx != "Non-epileptic spell") %>% 
+write.table( file = "data_summary.txt", sep = "\t", row.names =F)
+
+data %>% write.table( file = "data_analysis.txt", sep = "\t", row.names =F)
+
+othmed_ %>% write.table(file = "form501csum.txt", sep = "\t", row.names =F)
 ```
 
 ```{r}
