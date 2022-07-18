@@ -7,24 +7,33 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+data = read.delim2("data_analysis.txt")
+othmed_ = read.delim2("form501csum.txt")
 ```
 
-## R Markdown
+_Foe the flow chart, I exclude the individual with no outcome_
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+### Use "F501 Q10 "Aside from the study drug, were any other anti-seizure medications administered within 60 min?
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+table(data$antisewi60,data$med_use)
 ```
 
-## Including Plots
+179 out of 477 used other anti-seizure medication within 60 minutes
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+data1 = data %>% filter(antisewi60 == 1 & med_match ==1) 
+sum(data1$med_matchA)
+sum(data1$med_matchB)
+sum(data1$med_matchC)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+44 out of 179 received additional study medication as anti-seizure medication within 60 minutes, 21 of them received levetiracetam, 21 received fosphenytoin, and 2 of them received valproate.
+
+```{r}
+data2 = data1 %>% select(id, drug, outcome1, outcome2, med_match, med_matchA, med_matchB,med_matchC,med_use) %>% left_join(othmed_)
+
+data3 = data2 %>% group_by(id) %>% summarise(summed = sum(omeduse))
+```
+
