@@ -39,6 +39,8 @@ homemed_match = homemed %>%
   mutate(matchA = case_when(medname == "Levetiracetam" ~ 1,
                             medname != "Levetiracetam" ~ 0),
          matchC = case_when(medname == "Valproate" ~ 1,
+                            medname != "Valproate" ~ 0),
+         matchC = case_when(medname == "Valproate" ~ 1,
                             medname != "Valproate" ~ 0)) %>% 
   group_by(id) %>% summarise(sumA = sum(matchA), sumC = sum(matchC)) %>% 
   mutate(idmatchA = case_when(sumA > 0 ~ 1,
@@ -132,7 +134,7 @@ outcm = read_csv("E:/CU/RA/data/ESETT/Form 501.csv") %>%
 
 data = read_excel("E:/CU/RA/data/ESETT/Copy of Master_Results_Flattened.6.7.20.xlsx") %>%
   janitor::clean_names() %>% 
-  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, se_duration_before_study_drug,  study_drug, race, hispanic,  final_dx, outcome1a_treatment_success_adjudicated_1_yes_0_no) %>% 
+  dplyr::select(z_subject_id, sz_at_60mins, responsive_at_60mins, se_duration_before_study_drug,  study_drug, race, hispanic,  final_dx, outcome1a_treatment_success_adjudicated_1_yes_0_no, itt) %>% 
   rename(id = z_subject_id,
          sz60 = sz_at_60mins,
          res60 = responsive_at_60mins,
@@ -152,7 +154,7 @@ data = data %>%
    filter(id != 1129) 
 
 data %>% 
-   filter( final_dx != "Non-epileptic spell") %>% 
+   filter( final_dx != "Non-epileptic spell"& itt == 1) %>% 
 write.table( file = "data_summary.txt", sep = "\t", row.names =F)
 
 data %>% write.table( file = "data_analysis.txt", sep = "\t", row.names =F)

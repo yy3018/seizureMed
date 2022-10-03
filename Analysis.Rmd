@@ -1,28 +1,34 @@
 ---
 title: "Analysis work flow"
 author: "Xiaoyang Li"
-date: "7/18/2022"
-output: html_document
+date: "9/17/2022"
+output: 
+  html_document:
+  df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,message = FALSE, warning = FALSE)
 library(tidyverse)
-data = read.delim2("data_analysis.txt")
+data = read.delim2("data_analysis.txt") %>% mutate(age_group = factor(age_group, levels = c("child", "adult", "senior")))
+
+data %>% filter(final_dx == "Non-epileptic spell") %>% dim()
 othmed_ = read.delim2("form501csum.txt")
 ```
 
-_Foe the flow chart, I exclude the individual with no outcome_
+_For the flow chart, I exclude the individual with no outcome_
+
+## 4a
 
 ### Use "F501 Q10 "Aside from the study drug, were any other anti-seizure medications administered within 60 min?
 
-```{r}
+```{r, include = FALSE}
 table(data$antisewi60,data$med_use)
 ```
 
 179 out of 477 used other anti-seizure medication within 60 minutes
 
-```{r}
+```{r, include = FALSE}
 data1 = data %>% filter(antisewi60 == 1 & med_match ==1) 
 sum(data1$med_matchA)
 sum(data1$med_matchB)
@@ -31,9 +37,199 @@ sum(data1$med_matchC)
 
 44 out of 179 received additional study medication as anti-seizure medication within 60 minutes, 21 of them received levetiracetam, 21 received fosphenytoin, and 2 of them received valproate.
 
-```{r}
-data2 = data1 %>% select(id, drug, outcome1, outcome2, med_match, med_matchA, med_matchB,med_matchC,med_use) %>% left_join(othmed_)
+## 4b
 
-data3 = data2 %>% group_by(id) %>% summarise(summed = sum(omeduse))
+As I mentioned above, 44 out of 179 received additional study medication as anti-seizure medication within 60 minutes.
+
+```{r}
+db = data1 %>% left_join(othmed_)%>% select(id,drug, Male,age_group,race, sez60, respd,omed_name,omedt) %>% arrange(id, omedt)
+
+db1 = db %>% group_by(id) %>% summarise(n = n(),
+                                     maxt = max(omedt),
+                                     mint = min(omedt)) 
+db2 = db%>% filter(omed_name=="levetiracetam" | omed_name=="fosphenytoin" |omed_name=="valproic acid or valproate" ) %>% left_join(db1) %>% 
+   mutate(alone = case_when(omedt == maxt & omedt == mint ~ 0,
+                            omedt < maxt & id != 1112 ~ -1,
+                            omedt = maxt & id != 1112~ 1,
+                            id == 1112 ~ 0))
+
+db2 = db2[-9,]
+sum(db2$alone == 1)
+sum(db2$alone == 0)
+sum(db2$alone == -1)
+
 ```
 
+So there is 13 out of 44 received receive any study drug as the last antiepileptic drug (alone = 1),
+
+18 out of 44 received second round of study drug alone (alone = 0),
+
+13  out of 44 received something others after the second round of study drug (alone = -1).
+
+
+To be mentioned, one of them (1112) receive levetiracetam as study drug and fosphenytoin twice, which is treated as receive the second round of study drug alone.
+
+Their outcome, and outcome for stratified by each drug were list under 5.
+
+## 4c
+
+_Sicne very few patients satisfy the requirement, I simply show the seizure status and respond status below_
+
+### assigned to levetiracetam and receive more levetiracetam
+
+```{r}
+data %>% filter(drug == "A" & med_matchA == T) %>% #left_join(othmed_)%>% 
+  select(id,drug, Male,age_group,race, sez60, respd) %>% 
+  knitr::kable()
+```
+
+Only four patients receive more levetiracetam after they were assigned to drug A, none of them receive drug B or C. 
+
+### assigned to fosphenytoin and receive more fosphenytoin
+
+```{r}
+data %>% filter(drug == "B" & med_matchB == T) %>%# left_join(othmed_)%>% 
+  select(id,drug, Male,age_group,race, sez60, respd) %>% 
+  knitr::kable()
+```
+
+Only four patients receive more fosphenytoin after they were assigned to drug B, none of them receive drug A or C. 
+
+### assigned to valproate and receive more valproate.
+
+```{r include = FALSE}
+
+data %>% filter(drug == "C" & med_matchC == T) %>% #left_join(othmed_)%>% 
+  select(id,drug, Male,age_group,race, sez60, respd) %>% 
+  knitr::kable()
+```
+
+None of patients receive more valproate. after they were assigned to drug C. 
+
+## 5
+
+### Sum all received additional additional study drug (44)
+
+```{r}
+db2%>% select(id,drug, Male,age_group,race, sez60, respd,alone,n)%>% knitr::kable()
+```
+
+The individuals information were shown in the table. To be mentioned that `alone` actually represent their second round drug given time point.  
+
+In a short word, alone = 1 indicates that the patient receive any study drug as the last antiepileptic drug,
+
+alone = 0 indicates that the patient received second round of study drug alone,
+
+alone = -1 indicates that the patient received something others after the second round of study drug.
+
+As I mentioned in 4b, we know that 13 received study drug as the last antiepileptic drug, 18 of them receive study drug alone, 13 of them receive other antiepileptic drug after study drug
+
+```{r}
+db2%>% filter(alone ==1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+For individuals receive any study drug as the last antiepileptic drug, the children group have the highest seizure stop rate.
+
+```{r}
+db2%>% filter(alone ==0) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+For individuals receive study drug as the second round antiepileptic drug alone, the adult group have the highest seizure stop rate and "seizure stop and respond" rate
+
+
+```{r}
+db2%>% filter(alone ==-1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+
+For individuals receive antiepileptic drug after study drug, they have similar results.
+
+### For those who received additional levetiracetam (21)
+
+```{r}
+db2 %>% filter(omed_name=="levetiracetam") %>% select(id,drug, Male,age_group,race, sez60, respd,alone,n)%>% knitr::kable()
+```
+
+The number of drug they have been given is shown in column `n`. From above table, we know that 9 of 21 received levetiracetam as the last antiepileptic drug, 6 of them receive levetiracetam alone, 6 of them receive other antiepileptic drug after levetiracetam.
+
+```{r}
+db2 %>% filter(omed_name=="levetiracetam")%>% filter(alone ==1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+For individuals receive levetiracetam as the last antiepileptic drug, the adult group have the highest seizure stop rate.
+
+
+```{r}
+db2 %>% filter(omed_name=="levetiracetam")%>% filter(alone ==0) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+For individuals receive levetiracetam as the only second round antiepileptic drug, the adult group have the highest seizure stop rate and "seizure stop and respond" rate
+
+```{r}
+db2 %>% filter(omed_name=="levetiracetam")%>% filter(alone ==-1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+
+For individuals receive antiepileptic drug after levetiracetam, they have similar results.
+
+
+### For those who received additional fosphenytoin(21)
+
+```{r}
+db2 %>% filter(omed_name=="fosphenytoin") %>% select(id,drug, Male,age_group,race, sez60, respd,alone,n)%>% knitr::kable()
+
+```
+
+The number of drug they have been given is shown in column `n`. From above table, we know that 4 of 21 received fosphenytoin as the last antiepileptic drug, 10 of them receive fosphenytoin alone, 7 of them receive other antiepileptic drug after fosphenytoin. Except one adult receive additional fosphenytoin, all of the others are children. The outcome rate were listed for 3 condition below.
+
+```{r}
+db2 %>% filter(omed_name=="fosphenytoin")%>% filter(alone ==1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+
+```{r}
+db2 %>% filter(omed_name=="fosphenytoin")%>% filter(alone ==0) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+
+```{r}
+db2 %>% filter(omed_name=="fosphenytoin")%>% filter(alone ==-1) %>% group_by(age_group) %>% summarise(n = n(), 
+                                                                  sez_stop = mean(1-sez60), 
+                                                                  sez_stop_respd = mean((1-sez60)*respd))
+```
+
+
+### For those who received additional valproate.(2)
+
+The individual id is 1013 and 1050. Their basic information were shown below. 
+
+```{r}
+dval = data1 %>% filter(med_matchC == 1)  %>% left_join(othmed_)%>% select(id,drug, Male,age_group,race, sez60, respd,omedt)
+dval %>% knitr::kable()
+```
+
+They were assigned to drug B in the beginning, and then received Valporate alone within 60 minutes. The time when they receive valporate were shown in `omedt`. They did not seizure at 60 minutes and can respond at 60 minutes. 
+
+## 6
+
+ I list all the medication name they received after the study drug. They might be used together or alone. Please inform me what you want to know about these medication.
+ 
+"etomidate"   "lorazepam"   "propofol"      "diazepam"              
+"midazolam"   "ketamine"    "phenytoin"     "lacosamide"                 "phenobarbital"   
+"levetiracetam"    "fosphenytoin"    "valproic acid or valproate"

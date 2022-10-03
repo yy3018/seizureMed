@@ -1,0 +1,200 @@
+---
+title: "Tables"
+author: "Xiaoyang Li"
+date: "9/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE, warning = F,message = F)
+#library import
+library(tidyverse)
+library(readxl)
+
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+
+library(ggplot2)
+library(haven)
+
+# table 1
+datas = read.delim2("data_summary.txt") %>% 
+  mutate(age_group = factor(age_group, levels = c("child", "adult", "senior")),
+         se = as.numeric(se))
+
+datas$idmatchA[is.na(datas$idmatchA)] = 0
+datas$idmatchC[is.na(datas$idmatchC)] = 0
+
+# table 2
+data = read.delim2("data_analysis.txt") %>% mutate(age_group = factor(age_group, levels = c("child", "adult", "senior")))
+
+othmed_ = read.delim2("form501csum.txt")
+data1 = data %>% filter(antisewi60 == 1 & med_match ==1) 
+
+db = data1 %>% left_join(othmed_)%>% select(id,drug, Male,age_group,race, sez60, respd,omed_name,omedt) %>% arrange(id, omedt)
+
+db1 = db %>% group_by(id) %>% summarise(n = n(),
+                                     maxt = max(omedt),
+                                     mint = min(omedt)) 
+db2 = db%>% filter(omed_name=="levetiracetam" | omed_name=="fosphenytoin" |omed_name=="valproic acid or valproate" ) %>% left_join(db1) %>% 
+   mutate(alone = case_when(omedt == maxt & omedt == mint ~ 0,
+                            omedt < maxt & id != 1112 ~ -1,
+                            omedt = maxt & id != 1112~ 1,
+                            id == 1112 ~ 0))
+
+db2 = db2[-9,]
+
+data2 = left_join(datas, db2)
+data2$alone[data2$med_use == T & data2$med_match == F] = 2
+data2$alone[data2$med_use == F] = 3
+```
+
+_After removing individuals with final diagnosis "non-epileptic spell" and individuals who are not follow Intention-to-treat (itt), 421 individuals were kept out of 477_
+
+## Table 1 
+
+```{r}
+
+sum <- list(
+  "Age" = 
+    list(
+      "mean (sd)" = ~  mean_sd( age),
+      "Range" = ~ paste(min( age),max( age), sep = "-"),
+      "NA" = ~ paste0(sum(is.na( age)),"(",round(sum(is.na( age)) / length( id) *100,2), "%)")
+    ),
+  "Age Group" = 
+    list(
+      "0-17y" = ~ qwraps2::n_perc( age<= 17),
+      "18y - 60 y" = ~ qwraps2::n_perc( age >= 18 &  age <= 60),
+      ">60 y" = ~ qwraps2::n_perc( age>60)
+    ),
+  "Gender" = 
+    list(
+      "Female" = ~ qwraps2::n_perc( Male == 0),
+      "Male" = ~ qwraps2::n_perc( Male == 1)),
+  "Race" = 
+    list(
+      "Black" = ~ qwraps2::n_perc( race == "Black/African American"),
+      "White" = ~ qwraps2::n_perc( race == "White"),
+      "Asian" = ~ qwraps2::n_perc( race == "Asian"),
+      "Other" = ~ qwraps2::n_perc( race != "White" &  race != "Black/African American" &  race != "Asian" &  race != "Unknown" ),
+      "Unknown" = ~ qwraps2::n_perc( race == "Unknown")
+    ),
+  "Ethnicity" = 
+    list(
+      "Hispanic" = ~ qwraps2::n_perc( hispanic == "1"),
+      "Non-Hispanic" = ~ qwraps2::n_perc( hispanic == "0")
+    ),
+  "History of epilepsy" = 
+    list(
+      "Yes" = ~ qwraps2::n_perc( pre[!is.na( pre)] == 1),
+      "No" = ~  qwraps2::n_perc( pre[!is.na( pre)] == 0),
+      "NA" = ~ paste0(sum(is.na( pre)),"(",round(sum(is.na( pre)) / length( id) *100,2), "%)")
+    ),
+  "Duration of seizure" = list(
+    "mean (sd)" = ~  mean_sd( se[!is.na( se)]),
+    "Range" = ~ paste(min( se[!is.na( se)]),max( se[!is.na( se)]), sep = "-"),
+    "NA" = ~ paste0(sum(is.na( se)),"(",round(sum(is.na( se)) / length( id) *100,2), "%)")
+  ),
+  "Home antiepileptic medications that are the same as 2nd line antiepileptic medications" = list(
+    "Yes" = ~ qwraps2::n_perc ((idmatchA == 1 & drug == "A") | (idmatchC == 1 & drug == "C")) ,
+    "No" = ~  qwraps2::n_perc( !((idmatchA == 1 & drug == "A") | (idmatchC == 1 & drug == "C")))
+  )
+    
+)
+
+sep1 = summary_table(group_by(datas, med_match), sum)
+whole = summary_table(datas, sum)
+
+cbind(whole, sep1)
+
+
+```
+
+
+|                                                                                           |datas (N = 421)      |FALSE (N = 382)      |TRUE (N = 39)        |
+|:------------------------------------------------------------------------------------------|:--------------------|:--------------------|:--------------------|
+|**Age**                                                                                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; mean (sd)                                                                     |28.19 &plusmn; 26.22 |29.15 &plusmn; 26.43 |18.79 &plusmn; 22.23 |
+|&nbsp;&nbsp; Range                                                                         |1-94                 |1-94                 |1-70                 |
+|&nbsp;&nbsp; NA                                                                            |0(0%)                |0(0%)                |0(0%)                |
+|**Age Group**                                                                              |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; 0-17y                                                                         |217 (51.54%)         |189 (49.48%)         |28 (71.79%)          |
+|&nbsp;&nbsp; 18y - 60 y                                                                    |135 (32.07%)         |128 (33.51%)         |7 (17.95%)           |
+|&nbsp;&nbsp; >60 y                                                                         |69 (16.39%)          |65 (17.02%)          |4 (10.26%)           |
+|**Gender**                                                                                 |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Female                                                                        |176 (41.81%)         |154 (40.31%)         |22 (56.41%)          |
+|&nbsp;&nbsp; Male                                                                          |245 (58.19%)         |228 (59.69%)         |17 (43.59%)          |
+|**Race**                                                                                   |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Black                                                                         |182 (43.23%)         |169 (44.24%)         |13 (33.33%)          |
+|&nbsp;&nbsp; White                                                                         |179 (42.52%)         |157 (41.10%)         |22 (56.41%)          |
+|&nbsp;&nbsp; Asian                                                                         |17 (4.04%)           |16 (4.19%)           |1 (2.56%)            |
+|&nbsp;&nbsp; Other                                                                         |11 (2.61%)           |11 (2.88%)           |0 (0.00%)            |
+|&nbsp;&nbsp; Unknown                                                                       |32 (7.60%)           |29 (7.59%)           |3 (7.69%)            |
+|**Ethnicity**                                                                              |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Hispanic                                                                      |71 (16.86%)          |67 (17.54%)          |4 (10.26%)           |
+|&nbsp;&nbsp; Non-Hispanic                                                                  |350 (83.14%)         |315 (82.46%)         |35 (89.74%)          |
+|**History of epilepsy**                                                                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes                                                                           |305 (72.79%)         |274 (72.11%)         |31 (79.49%)          |
+|&nbsp;&nbsp; No                                                                            |114 (27.21%)         |106 (27.89%)         |8 (20.51%)           |
+|&nbsp;&nbsp; NA                                                                            |2(0.48%)             |2(0.52%)             |0(0%)                |
+|**Duration of seizure**                                                                    |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; mean (sd)                                                                     |77.47 &plusmn; 60.07 |76.51 &plusmn; 54.99 |86.39 &plusmn; 95.84 |
+|&nbsp;&nbsp; Range                                                                         |6-620                |6-385                |12-620               |
+|&nbsp;&nbsp; NA                                                                            |29(6.89%)            |28(7.33%)            |1(2.56%)             |
+|**Home antiepileptic medications that are the same as 2nd line antiepileptic medications** |&nbsp;&nbsp;         |&nbsp;&nbsp;         |&nbsp;&nbsp;         |
+|&nbsp;&nbsp; Yes                                                                           |68 (16.15%)          |58 (15.18%)          |10 (25.64%)          |
+|&nbsp;&nbsp; No                                                                            |353 (83.85%)         |324 (84.82%)         |29 (74.36%)          |
+
+
+## Table 2
+
+```{r}
+sum2 = list(
+  "Seizure stopped at 60 minutes from time of study medication initiation (2nd line treatment)" = list(
+    "Yes" = ~ qwraps2::n_perc(sz60 == 0) ,
+    "No" = ~  qwraps2::n_perc( sz60 == 1)
+  ),
+  "Intubation within 60 minutes of study medication (2nd line) administration" = list(
+    "Yes" = ~ qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubwi60[!is.na( intubwi60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubwi60)),"(",round(sum(is.na( intubwi60)) / length( id) *100,2), "%)")
+  ),
+  "Intubation after 60 minutes of the study medication (2nd line) administration" = list(
+    "Yes" = ~ qwraps2::n_perc( intubo60[!is.na( intubo60)] == 1),
+    "No" = ~  qwraps2::n_perc( intubo60[!is.na( intubo60)] == 0),
+    "NA" = ~ paste0(sum(is.na( intubo60)),"(",round(sum(is.na( intubo60)) / length( id) *100,2), "%)")
+  ),
+  "ICU admission" = list(
+    "Yes" = ~ qwraps2::n_perc( intcr[!is.na( intcr)] == 1),
+    "No" = ~  qwraps2::n_perc( intcr[!is.na( intcr)] == 0),
+    "NA" = ~ paste0(sum(is.na( intcr)),"(",round(sum(is.na( intcr)) / length( id) *100,2), "%)")
+  )
+)
+
+whole = summary_table(data2, sum2)
+
+sep2 = summary_table(group_by(data2, alone), sum2)
+cbind(whole, sep2)
+
+```
+
+|                                                                                                |datas (N = 421) |Had second 2nd line meds followed by another antiepileptic meds (N = 13)  |Had second 2rd line meds alone (N = 15)   |Had second 2nd line meds as the last antiepileptic meds (N = 11)   | Had a 3rd line meds (no repeat of study medications)(N = 118)  | No 3rd line meds (N = 264)  |
+|:-----------------------------------------------------------------------------------------------|:---------------|:------------|:------------|:------------|:------------|:------------|
+|**Seizure stopped at 60 minutes from time of study medication initiation (2nd line treatment)** |&nbsp;&nbsp;    |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Yes                                                                                |377 (89.55%)    |8 (61.54%)   |10 (66.67%)  |8 (72.73%)   |99 (83.90%)  |252 (95.45%) |
+|&nbsp;&nbsp; No                                                                                 |44 (10.45%)     |5 (38.46%)   |5 (33.33%)   |3 (27.27%)   |19 (16.10%)  |12 (4.55%)   |
+|**Intubation within 60 minutes of study medication (2nd line) administration**                  |&nbsp;&nbsp;    |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Yes                                                                                |91 (21.62%)     |6 (46.15%)   |0 (0.00%)    |5 (45.45%)   |74 (62.71%)  |6 (2.27%)    |
+|&nbsp;&nbsp; No                                                                                 |330 (78.38%)    |7 (53.85%)   |15 (100.00%) |6 (54.55%)   |44 (37.29%)  |258 (97.73%) |
+|&nbsp;&nbsp; NA                                                                                 |0(0%)           |0(0%)        |0(0%)        |0(0%)        |0(0%)        |0(0%)        |
+|**Intubation after 60 minutes of the study medication (2nd line) administration**               |&nbsp;&nbsp;    |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Yes                                                                                |131 (57.71%)    |8 (61.54%)   |2 (20.00%)   |5 (71.43%)   |88 (91.67%)  |28 (27.72%)  |
+|&nbsp;&nbsp; No                                                                                 |96 (42.29%)     |5 (38.46%)   |8 (80.00%)   |2 (28.57%)   |8 (8.33%)    |73 (72.28%)  |
+|&nbsp;&nbsp; NA                                                                                 |194(46.08%)     |0(0%)        |5(33.33%)    |4(36.36%)    |22(18.64%)   |163(61.74%)  |
+|**ICU admission**                                                                               |&nbsp;&nbsp;    |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |&nbsp;&nbsp; |
+|&nbsp;&nbsp; Yes                                                                                |263 (62.47%)    |12 (92.31%)  |9 (60.00%)   |10 (90.91%)  |107 (90.68%) |125 (47.35%) |
+|&nbsp;&nbsp; No                                                                                 |158 (37.53%)    |1 (7.69%)    |6 (40.00%)   |1 (9.09%)    |11 (9.32%)   |139 (52.65%) |
+|&nbsp;&nbsp; NA                                                                                 |0(0%)           |0(0%)        |0(0%)        |0(0%)        |0(0%)        |0(0%)        |
+
+
